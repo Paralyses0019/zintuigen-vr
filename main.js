@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import {VRButton} from './vendor/webxr/VRButton.js';
 import {ARButton} from './vendor/webxr/ARButton.js';
 import {Timeline} from './timeline.js';
+import {loadAssets} from './gedeeld/assets.js';
+import {input} from './gedeeld/input.js';
 import {Sound} from './gedeeld/audio.js';
 import {dispose} from './gedeeld/util.js';
 import {plank} from './belevingen/plank.js';
@@ -33,36 +35,35 @@ view.prepend(renderer.domElement);
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.05,1000);
 camera.position.set(0,1.65,0);scene.add(camera);
-const tracked=[];
-for(let i=0;i<2;i++) {
-  const hand=renderer.xr.getHand(i),controller=renderer.xr.getController(i);
-  const entry={hand,controller,connected:false};
-  controller.addEventListener('connected',()=>entry.connected=true);
-  controller.addEventListener('disconnected',()=>entry.connected=false);
-  scene.add(hand,controller);tracked.push(entry);
-}
 const head=new THREE.Vector3(),rotation=new THREE.Quaternion();
 const forward=new THREE.Vector3(),up=new THREE.Vector3(),target=new THREE.Vector3();
-function headPosition(){return head;}
-function handPosition() {
-  const hand=tracked.find(h=>h.hand.visible&&h.hand.joints?.['index-finger-tip']?.visible)?.hand.joints['index-finger-tip'];
-  const controller=tracked.find(h=>h.connected&&h.controller.visible)?.controller;
-  if(hand)return hand.getWorldPosition(target);
-  if(controller)return controller.getWorldPosition(target);
-  return target.set(0,-.32,-.7).applyQuaternion(rotation).add(head);
-}
+const inputs=input(renderer,scene,head,rotation);
+const headPosition=()=>head;
+const handPosition=()=>inputs.hands()[0]?.position||target.set(0,1.2,-.45);
+let assets=null,loadToken=0;
 const durationLabel=d=>`${Math.floor(d/60)}:${String(d%60).padStart(2,'0')}`;
 experiences.forEach((experience,i)=>{
   const button=document.createElement('button');button.className='tile';
   button.innerHTML=`<span>0${i+1} / ${durationLabel(experience.duration)}</span><strong>${experience.name}</strong>`;
   button.onclick=()=>choose(i);tiles.append(button);
 });
-function choose(i) {
+async function choose(i) {
+  const token=++loadToken;start.disabled=true;assets?.dispose();assets=null;
+  audio?.stop();audio=new Sound();const selectedAudio=audio;
   selected=i;tiles.hidden=true;detail.hidden=false;
   $('#number').textContent=`0${i+1}`;$('#title').textContent=experiences[i].name;
   $('#duration').textContent=durationLabel(experiences[i].duration);
+  $('#loading').hidden=false;$('#progress').value=0;
+  try {
+    const loaded=await loadAssets(i,renderer,n=>{if(token===loadToken)$('#progress').value=n;});
+    if(token!==loadToken){loaded.dispose();return;}
+    assets=loaded;await selectedAudio.load(assets.audio,scene);
+    if(token!==loadToken)return;
+    $('#loading').hidden=true;start.disabled=false;
+  } catch(error) {if(token===loadToken){$('#loading').hidden=true;$('#duration').textContent='Laden mislukt. Ga terug en kies opnieuw.';}console.error(error);}
+
 }
-$('#back').onclick=()=>{detail.hidden=true;tiles.hidden=false;};
+$('#back').onclick=()=>{++loadToken;audio?.stop();assets?.dispose();assets=null;detail.hidden=true;tiles.hidden=false;$("#loading").hidden=true;};
 
 // Keep the bundled XR entry helpers. ARButton normally chooses 'local'; this
 // narrow adapter keeps both experiences in the same floor-based coordinate space.
@@ -82,14 +83,14 @@ async function ready() {
     const [vr,ar]=await Promise.all(['immersive-vr','immersive-ar'].map(type=>navigator.xr.isSessionSupported(type).catch(()=>false)));
     support={vr,ar};
   }
-  // Every module is statically imported; no assets are fetched after Start.
-  $('#progress').value=100;$('#loading').hidden=true;start.disabled=false;
+  // The menu contains no experience media; selection loads one pack.
+  if(detail.hidden)$('#loading').hidden=true;
 }
 ready();
 start.onclick=()=>{
   if(starting||running)return;
   starting=true;start.disabled=true;
-  audio=new Sound();audio.resume();
+  audio.resume();
   mode=selected===2&&support.ar?'ar':support.vr?'vr':'desktop';
   renderer.xr.setReferenceSpaceType('local-floor');
   if(mode==='desktop')begin();
@@ -100,7 +101,7 @@ start.onclick=()=>{
 // button on cancellation and offer another user-initiated attempt (VR fallback for AR).
 addEventListener('unhandledrejection',event=>{
   if(!starting||running)return;
-  starting=false;start.disabled=false;audio?.stop();
+  starting=false;start.disabled=false;audio?.ctx.suspend();
   if(mode==='ar')support.ar=false;
   $('#duration').textContent='Brilmodus kon niet starten. Tik opnieuw op Start.';
   console.warn('XR-start afgebroken:',event.reason);
@@ -119,7 +120,7 @@ function begin() {
   camera.rotation.set(0,0,0);camera.position.set(0,1.65,0);yaw=pitch=0;
   renderer.setClearColor(0x000000,mode==='ar'?0:1);
   const experience=experiences[selected];
-  world=experience.create({scene,mode,headPosition,handPosition,audio});scene.add(world.group);
+  world=experience.create({scene,mode,headPosition,handPosition,hands:inputs.hands,audio,assets});scene.add(world.group);
   const value=Number(new URLSearchParams(location.search).get('t'));
   const offset=Math.max(0,Math.min(experience.duration-.01,Number.isFinite(value)?value:0));
   timeline=new Timeline(offset);
@@ -135,7 +136,7 @@ function finish(endSession=true) {
   if(!running)return;
   running=false;renderer.setAnimationLoop(null);audio.stop();
   scene.remove(world.group);dispose(world.group);world=null;
-  scene.background=null;scene.fog=null;renderer.setClearColor(0x000000,1);
+  scene.background=null;scene.environment=null;scene.fog=null;renderer.setClearColor(0x000000,1);
   view.hidden=true;menu.hidden=false;start.disabled=false;choose(selected);start.focus();
   if(endSession)renderer.xr.getSession()?.end();
 }
@@ -147,7 +148,7 @@ function frame() {
   activeCamera.updateMatrixWorld();activeCamera.getWorldPosition(head);activeCamera.getWorldQuaternion(rotation);
   forward.set(0,0,-1).applyQuaternion(rotation);up.set(0,1,0).applyQuaternion(rotation);
   audio.listen(head,forward,up);
-  world.update(t);audio.update(t);renderer.render(scene,camera);
+  inputs.update(t,selected===3);world.update(t);audio.update(t);renderer.render(scene,camera);
 }
 addEventListener('resize',()=>{
   camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);

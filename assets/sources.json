@@ -1,0 +1,332 @@
+[
+  {
+    "file": "assets/brown_mud/color.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_diff_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/brown_mud"
+  },
+  {
+    "file": "assets/brown_mud/normal.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/brown_mud"
+  },
+  {
+    "file": "assets/brown_mud/roughness.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_rough_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/brown_mud"
+  },
+  {
+    "file": "assets/rough_wood/color.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_wood/rough_wood_diff_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rough_wood"
+  },
+  {
+    "file": "assets/rough_wood/normal.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_wood/rough_wood_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rough_wood"
+  },
+  {
+    "file": "assets/rough_wood/roughness.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_wood/rough_wood_rough_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rough_wood"
+  },
+  {
+    "file": "assets/metal_plate/color.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_diff_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/metal_plate"
+  },
+  {
+    "file": "assets/metal_plate/normal.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/metal_plate"
+  },
+  {
+    "file": "assets/metal_plate/roughness.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_rough_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/metal_plate"
+  },
+  {
+    "file": "assets/approaching_storm/sky.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/approaching_storm.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/approaching_storm"
+  },
+  {
+    "file": "assets/approaching_storm/environment.hdr",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/approaching_storm_1k.hdr",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/approaching_storm"
+  },
+  {
+    "file": "assets/rogland_moonlit_night/sky.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/extra/Tonemapped%20JPG/rogland_moonlit_night.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rogland_moonlit_night"
+  },
+  {
+    "file": "assets/rogland_moonlit_night/environment.hdr",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/rogland_moonlit_night_1k.hdr",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rogland_moonlit_night"
+  },
+  {
+    "file": "vendor/webxr/XRHandModelFactory.js",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/webxr/XRHandModelFactory.js",
+    "license": "MIT",
+    "source": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/webxr/XRHandModelFactory.js"
+  },
+  {
+    "file": "vendor/webxr/XRHandPrimitiveModel.js",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/webxr/XRHandPrimitiveModel.js",
+    "license": "MIT",
+    "source": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/webxr/XRHandPrimitiveModel.js"
+  },
+  {
+    "file": "vendor/webxr/XRHandMeshModel.js",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/webxr/XRHandMeshModel.js",
+    "license": "MIT",
+    "source": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/webxr/XRHandMeshModel.js"
+  },
+  {
+    "file": "vendor/loaders/GLTFLoader.js",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/loaders/GLTFLoader.js",
+    "license": "MIT",
+    "source": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/loaders/GLTFLoader.js"
+  },
+  {
+    "file": "vendor/utils/BufferGeometryUtils.js",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/utils/BufferGeometryUtils.js",
+    "license": "MIT",
+    "source": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/utils/BufferGeometryUtils.js"
+  },
+  {
+    "file": "vendor/webxr/XRControllerModelFactory.js",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/webxr/XRControllerModelFactory.js",
+    "license": "MIT",
+    "source": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/webxr/XRControllerModelFactory.js"
+  },
+  {
+    "file": "vendor/libs/motion-controllers.module.js",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/libs/motion-controllers.module.js",
+    "license": "MIT",
+    "source": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/libs/motion-controllers.module.js"
+  },
+  {
+    "file": "vendor/loaders/RGBELoader.js",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/loaders/RGBELoader.js",
+    "license": "MIT",
+    "source": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/loaders/RGBELoader.js"
+  },
+  {
+    "file": "vendor/loaders/HDRLoader.js",
+    "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/loaders/HDRLoader.js",
+    "license": "MIT",
+    "source": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/loaders/HDRLoader.js"
+  },
+  {
+    "file": "vendor/profiles/generic-hand/left.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-hand/left.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-hand/left.glb"
+  },
+  {
+    "file": "vendor/profiles/generic-hand/right.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-hand/right.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-hand/right.glb"
+  },
+  {
+    "file": "vendor/profiles/profilesList.json",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/profilesList.json",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/profilesList.json"
+  },
+  {
+    "file": "vendor/profiles/generic-trigger/profile.json",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-trigger/profile.json",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-trigger/profile.json"
+  },
+  {
+    "file": "vendor/profiles/generic-trigger/left.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-trigger/left.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-trigger/left.glb"
+  },
+  {
+    "file": "vendor/profiles/generic-trigger/right.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-trigger/right.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-trigger/right.glb"
+  },
+  {
+    "file": "vendor/profiles/generic-trigger/none.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-trigger/none.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/generic-trigger/none.glb"
+  },
+  {
+    "file": "vendor/profiles/meta-quest-touch-plus/profile.json",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/meta-quest-touch-plus/profile.json",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/meta-quest-touch-plus/profile.json"
+  },
+  {
+    "file": "vendor/profiles/meta-quest-touch-plus/left.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/meta-quest-touch-plus/left.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/meta-quest-touch-plus/left.glb"
+  },
+  {
+    "file": "vendor/profiles/meta-quest-touch-plus/right.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/meta-quest-touch-plus/right.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/meta-quest-touch-plus/right.glb"
+  },
+  {
+    "file": "vendor/profiles/oculus-touch-v2/profile.json",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v2/profile.json",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v2/profile.json"
+  },
+  {
+    "file": "vendor/profiles/oculus-touch-v2/left.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v2/left.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v2/left.glb"
+  },
+  {
+    "file": "vendor/profiles/oculus-touch-v2/right.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v2/right.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v2/right.glb"
+  },
+  {
+    "file": "vendor/profiles/oculus-touch-v3/profile.json",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v3/profile.json",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v3/profile.json"
+  },
+  {
+    "file": "vendor/profiles/oculus-touch-v3/left.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v3/left.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v3/left.glb"
+  },
+  {
+    "file": "vendor/profiles/oculus-touch-v3/right.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v3/right.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch-v3/right.glb"
+  },
+  {
+    "file": "vendor/profiles/oculus-touch/profile.json",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch/profile.json",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch/profile.json"
+  },
+  {
+    "file": "vendor/profiles/oculus-touch/left.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch/left.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch/left.glb"
+  },
+  {
+    "file": "vendor/profiles/oculus-touch/right.glb",
+    "url": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch/right.glb",
+    "license": "MIT",
+    "source": "https://cdn.jsdelivr.net/npm/@webxr-input-profiles/assets@1.0/dist/profiles/oculus-touch/right.glb"
+  },
+  {
+    "file": "assets/audio/rain.ogg",
+    "url": "https://cdn.freesound.org/previews/56/56306_91374-hq.mp3",
+    "license": "CC0-1.0",
+    "source": "https://freesound.org/people/Q.K./sounds/56306/"
+  },
+  {
+    "file": "assets/audio/rain-bed.ogg",
+    "url": "https://cdn.freesound.org/previews/56/56306_91374-hq.mp3",
+    "license": "CC0-1.0",
+    "source": "https://freesound.org/people/Q.K./sounds/56306/"
+  },
+  {
+    "file": "assets/audio/wind.ogg",
+    "url": "https://cdn.freesound.org/previews/728/728737_801011-hq.mp3",
+    "license": "CC0-1.0",
+    "source": "https://freesound.org/people/Borgory/sounds/728737/"
+  },
+  {
+    "file": "assets/audio/wind-bed.ogg",
+    "url": "https://cdn.freesound.org/previews/728/728737_801011-hq.mp3",
+    "license": "CC0-1.0",
+    "source": "https://freesound.org/people/Borgory/sounds/728737/"
+  },
+  {
+    "file": "assets/audio/crickets.ogg",
+    "url": "https://cdn.freesound.org/previews/734/734642_13973196-hq.mp3",
+    "license": "CC0-1.0",
+    "source": "https://freesound.org/people/Vrymaa/sounds/734642/"
+  },
+  {
+    "file": "assets/audio/crickets-bed.ogg",
+    "url": "https://cdn.freesound.org/previews/734/734642_13973196-hq.mp3",
+    "license": "CC0-1.0",
+    "source": "https://freesound.org/people/Vrymaa/sounds/734642/"
+  },
+  {
+    "file": "assets/audio/door.ogg",
+    "url": "https://cdn.freesound.org/previews/767/767041_189858-hq.mp3",
+    "source": "https://freesound.org/people/DeqstersLab/sounds/767041/",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "assets/audio/steps.ogg",
+    "url": "https://cdn.freesound.org/previews/554/554380_12197305-hq.mp3",
+    "source": "https://freesound.org/people/JamGrif/sounds/554380/",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "assets/audio/drop.ogg",
+    "url": "https://cdn.freesound.org/previews/451/451126_2927958-hq.mp3",
+    "source": "https://freesound.org/people/bolkmar/sounds/451126/",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "assets/audio/fire.ogg",
+    "url": "https://cdn.freesound.org/previews/181/181563_1857065-hq.mp3",
+    "source": "https://freesound.org/people/kingsrow/sounds/181563/",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "assets/audio/roof.ogg",
+    "url": "https://cdn.freesound.org/previews/736/736845_11519060-hq.mp3",
+    "source": "https://freesound.org/people/bruno.auzet/sounds/736845/",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "assets/audio/thunder.ogg",
+    "url": "https://cdn.freesound.org/previews/581/581124_9395330-hq.mp3",
+    "source": "https://freesound.org/people/Fission9/sounds/581124/",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "vendor/profiles/LICENSE.md",
+    "url": "https://raw.githubusercontent.com/immersive-web/webxr-input-profiles/main/packages/assets/LICENSE.md",
+    "license": "MIT",
+    "source": "https://github.com/immersive-web/webxr-input-profiles/tree/main/packages/assets"
+  },
+  {
+    "file": "vendor/libs/MOTION-CONTROLLERS-LICENSE.md",
+    "url": "https://raw.githubusercontent.com/immersive-web/webxr-input-profiles/main/packages/motion-controllers/LICENSE.md",
+    "source": "https://raw.githubusercontent.com/immersive-web/webxr-input-profiles/main/packages/motion-controllers/LICENSE.md",
+    "license": "MIT"
+  }
+]

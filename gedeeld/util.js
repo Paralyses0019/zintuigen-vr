@@ -30,5 +30,5 @@ export function dispose(group) {
   });
   geometries.forEach(g => g.dispose());
   materials.forEach(m => m.dispose());
-  textures.forEach(t => t.dispose());
+  textures.forEach(t => {if(!t.userData.shared)t.dispose();});
 }

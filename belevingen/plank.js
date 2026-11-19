@@ -1,37 +1,34 @@
 ﻿import * as THREE from 'three';
 import {smooth,plane,random} from '../gedeeld/util.js';
+import {material,environment,box} from '../gedeeld/assets.js';
 import {atmosphere,particles,veil} from '../gedeeld/licht.js';
 
-export function plank({scene,headPosition,audio}) {
+export function plank({scene,headPosition,audio,assets,hands}) {
   const group=new THREE.Group();
   const air=atmosphere(scene,group,{top:0x000107,horizon:0x09172e,density:.0012});
+  const sky=environment(scene,group,assets,{intensity:.4});
+  const steel=material(assets,'metal_plate',{metalness:.85,roughness:.62,color:0x71808e,side:THREE.DoubleSide});
+  const wood=material(assets,'rough_wood',{color:0xa59073,side:THREE.DoubleSide});
+  group.add(new THREE.HemisphereLight(0x8db2dc,0x101827,.6));
+  const ceilingLight=new THREE.PointLight(0xb6d5ed,6,5);ceilingLight.position.set(0,2.6,0);group.add(ceilingLight);
   const surfaces=[];
   function panel(w,h,color,x,y,z,ry=0) {
     const p=plane(group,w,h,color,x,y,z,ry);surfaces.push({mesh:p,color:p.material.color.clone()});return p;
   }
-  const floor=panel(2,2,0x090d12,0,0,0);floor.rotation.x=-Math.PI/2;
+  const floorLeft=box(group,steel,.8,.08,2,-.6,-.04,0);
+  const floorRight=box(group,steel,.8,.08,2,.6,-.04,0);
+  const floorBack=box(group,steel,.4,.08,.8,0,-.04,.6);
   panel(2,3,0x04070c,-1,1.5,0,Math.PI/2);
   panel(2,3,0x04070c,1,1.5,0,Math.PI/2);
   panel(2,3,0x030509,0,1.5,1,Math.PI);
   const ceiling=panel(2,2,0x020408,0,3,0);ceiling.rotation.x=Math.PI/2;
   const left=panel(1,3,0x080d15,-.5,1.5,-1),right=panel(1,3,0x080d15,.5,1.5,-1);
-  const board=panel(.3,4,0xb6a18a,0,0,-3);board.rotation.x=-Math.PI/2;
-  // Seeded longitudinal grain and joins: one small, locally generated texture.
-  const canvas=document.createElement('canvas');canvas.width=128;canvas.height=512;
-  const ctx=canvas.getContext('2d'),grain=random(812);
-  ctx.fillStyle='#75634f';ctx.fillRect(0,0,128,512);
-  for(let i=0;i<420;i++) {
-    const x=grain()*128,y=grain()*512;
-    ctx.strokeStyle=`rgba(${grain()>.5?'222,191,144':'25,17,11'},${.04+grain()*.18})`;
-    ctx.lineWidth=.4+grain()*1.2;ctx.beginPath();ctx.moveTo(x,y);
-    ctx.bezierCurveTo(x+grain()*3,y+45,x-2,y+90,x+1,y+160);ctx.stroke();
-  }
-  ctx.fillStyle='rgba(12,8,5,.6)';ctx.fillRect(42,0,1,512);ctx.fillRect(85,0,1,512);
-  const grainTexture=new THREE.CanvasTexture(canvas);grainTexture.colorSpace=THREE.SRGBColorSpace;
-  board.material.map=grainTexture;
+  const board=box(group,wood,.4,.12,4.4,0,-.06,-2);
+  // Lift wall surfaces use the same photographed brushed metal set.
+  surfaces.forEach(({mesh})=>{mesh.material.dispose();mesh.material=steel;});
   const edges=[];
-  for(const x of [-.148,.148]) {
-    const edge=panel(.008,4,0xffdbaa,x,.003,-3);edge.rotation.x=-Math.PI/2;edges.push(edge);
+  for(const x of [-.198,.198]) {
+    const edge=panel(.008,4.4,0xffdbaa,x,.003,-2);edge.rotation.x=-Math.PI/2;edges.push(edge);
   }
   // Individually seeded streets: 6,400 lights, varied heights and block gaps.
   const city=particles(group,air,6400,{size:2.1,color:0xffbd76,seed:36});
@@ -72,22 +69,43 @@ export function plank({scene,headPosition,audio}) {
     seam.position.set(x,1.5,z+.001);
   }
   const threshold=panel(1.96,.012,0xb7dbeb,0,.004,-.97);threshold.rotation.x=-Math.PI/2;
-  let lastFall=-10;
+  // Loose nut rests on the beam, 42 cm ahead: reach down without walking forward.
+
+  const nut=new THREE.Mesh(new THREE.TorusGeometry(.045,.016,6,6),steel);nut.rotation.x=Math.PI/2;nut.position.set(0,.065,-.42);group.add(nut);
+  let holder=null,droppedAt=null,lastTime=null,landed=false,lastWarning=-10;
+  const velocity=new THREE.Vector3(),origin=new THREE.Vector3(0,.065,-.42);
   return {group,update(t) {
-    const fade=1-smooth(136,150,t);
-    air.update(t,fade);
-    const pos=headPosition();
-    if(t>64&&t<130&&pos.z< -1&&Math.abs(pos.x)>.25&&t-lastFall>5) {audio.fall();lastFall=t;}
-    const guard=1-smooth(2.5,4,t-lastFall);
-    const open=smooth(60,64,t)*(1-smooth(130,136,t))*(1-guard);
+    const fade=1-smooth(136,150,t);air.update(t,fade);sky.material.color.setScalar(.22*fade);scene.environmentIntensity=.4*fade;
+    const open=smooth(60,64,t)*(1-smooth(130,136,t));
     left.position.x=-.5-open;right.position.x=.5+open;
-    board.visible=t>=60&&guard<.5;edges.forEach(e=>e.visible=board.visible);
+    floorLeft.position.x=-.6-open*1.8;floorRight.position.x=.6+open*1.8;floorBack.position.z=.6+open*1.8;
+    threshold.visible=open<.15;
+    const head=headPosition();
+    if(open>.95&&Math.abs(head.x)>.25&&head.z<.2&&t-lastWarning>5){audio.fall();lastWarning=t;}
+    board.visible=true;edges.forEach(e=>e.visible=t>=60);nut.visible=t>=60&&t<130;
+    const dt=lastTime===null?0:Math.min(.05,Math.max(0,t-lastTime));lastTime=t;
+    const hs=hands();
+    if(t>=60&&t<130) {
+      if(holder) {
+        if(hs.includes(holder)&&holder.pinch){nut.position.copy(holder.position);velocity.set(.15,0,-.1);}
+        else {holder=null;droppedAt=t;landed=false;audio.dropStart(nut.position);}
+      } else if(droppedAt===null) {
+        const h=hs.find(h=>h.position.distanceTo(nut.position)<.13);
+        if(h){if(h.pinch)holder=h;else{droppedAt=t;velocity.set(.35,0,-.4);landed=false;audio.dropStart(nut.position);}}
+      }
+      if(droppedAt!==null) {
+        velocity.y-=9.81*dt;nut.position.addScaledVector(velocity,dt);nut.rotation.z+=dt*6;audio.dropMove(nut.position,t-droppedAt);
+        if(t-droppedAt>4.3&&!landed){audio.dropLand();landed=true;}
+        if(t-droppedAt>=5){nut.position.copy(origin);droppedAt=null;velocity.set(0,0,0);}
+      }
+    }
     const ascent=smooth(20,28,t)*(1-smooth(58,60,t));
     strips.forEach((s,i)=>{
       s.position.y=((i*.43-t*(t<130?1.3:-.85))%4+4)%4-.5;
       s.material.uniforms.uOpacity.value=.12+.65*(ascent+smooth(130,138,t))*(.9+.1*Math.sin(t*.8));
     });
     clouds.forEach((c,i)=>c.position.x=(i%2?1:-1)*48+Math.sin(t*.014+i)*12);
-    surfaces.forEach(({mesh,color})=>mesh.material.color.copy(color).multiplyScalar(fade));
+    surfaces.forEach(({mesh,color})=>{if(mesh.material!==steel)mesh.material.color.copy(color).multiplyScalar(fade);});
+    steel.color.setRGB(.17*fade,.2*fade,.24*fade);wood.color.setRGB(.6*fade,.45*fade,.3*fade);ceilingLight.intensity=6*fade;
   }};
 }

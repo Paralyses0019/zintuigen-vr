@@ -138,7 +138,7 @@ export function rain(group, atmosphere, count=1100) {
   for(let i=0;i<count;i++) {
     let x=(rand()-.5)*24,z=(rand()-.5)*24;
     // Keep the sheltered footprint clear; distant and overhead rain remain visible.
-    if(Math.abs(x)<2.8&&Math.abs(z)<2.8)x+=(x<0?-3:3);
+    // Rain can reach the player until the roof forms.
     const y=rand()*13,phase=rand()*13;
     positions.set([x,y,z,x+.055,y+.38+rand()*.35,z],i*6);
     phases.set([phase,phase],i*2); ends.set([0,1],i*2);
@@ -147,13 +147,14 @@ export function rain(group, atmosphere, count=1100) {
   geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
   geometry.setAttribute('aPhase',new THREE.BufferAttribute(phases,1));
   geometry.setAttribute('aEnd',new THREE.BufferAttribute(ends,1));
-  const uniforms={...atmosphere.uniforms,uOpacity:{value:0}};
+  const uniforms={...atmosphere.uniforms,uOpacity:{value:0},uShelter:{value:0}};
   const lines=new THREE.LineSegments(geometry,new THREE.ShaderMaterial({
     uniforms,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
-    vertexShader:`attribute float aPhase,aEnd; uniform float uTime; varying float vAlpha,vDepth;
+    vertexShader:`attribute float aPhase,aEnd; uniform float uTime,uShelter; varying float vAlpha,vDepth;
       void main(){vec3 p=position; p.y=mod(aPhase-uTime*6.2,13.0)-1.0+aEnd*.55;
       p.x+=sin(uTime*.23)*.3; vec4 mv=modelViewMatrix*vec4(p,1);
-      vDepth=length(mv.xyz);vAlpha=mix(.85,.08,aEnd);gl_Position=projectionMatrix*mv;}`,
+      vDepth=length(mv.xyz);vAlpha=mix(.85,.08,aEnd);
+      if(p.y<0.0 || (uShelter>.8 && abs(p.x)<.9 && p.z> -.8 && p.z<.9 && p.y<2.5))vAlpha=0.0;gl_Position=projectionMatrix*mv;}`,
     fragmentShader:displayOutput(`uniform float uOpacity,uFade,uDensity;varying float vAlpha,vDepth;
       void main(){float fog=exp(-uDensity*uDensity*vDepth*vDepth);
       gl_FragColor=vec4(.48,.66,.79,vAlpha*uOpacity*uFade*fog);}`)

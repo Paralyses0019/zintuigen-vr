@@ -1,10 +1,14 @@
 import * as THREE from 'three';
+import {environment} from '../gedeeld/assets.js';
 import {smooth} from '../gedeeld/util.js';
 import {atmosphere,particles,veil} from '../gedeeld/licht.js';
 
-export function vuurvliegjes({scene,mode,handPosition}) {
+export function vuurvliegjes({scene,mode,handPosition,hands,assets}) {
   const group=new THREE.Group(), ar=mode==='ar';
   const air=atmosphere(scene,group,{top:0x010608,horizon:0x182a2b,density:.04,ar});
+  const sky=environment(scene,group,assets,{sky:!ar,intensity:.18});
+  const handLight=new THREE.PointLight(0xffb34b,0,1.2,2);group.add(handLight);
+  group.add(new THREE.HemisphereLight(0x807e9b,0x17121a,.25));
   // A full surrounding layer avoids the old front-only passthrough rectangle.
   const shade=new THREE.Mesh(new THREE.SphereGeometry(20,24,12),new THREE.MeshBasicMaterial({
     color:0,side:THREE.BackSide,transparent:true,opacity:0,depthWrite:false,fog:false
@@ -21,15 +25,29 @@ export function vuurvliegjes({scene,mode,handPosition}) {
   const flies=particles(group,air,100,{size:.16,bounds:[11,3.5,11],color:0xffc373,seed:83});
   const landed=particles(group,air,1,{size:.14,color:0xffdb94});
   landed.uniforms.uTwinkle.value=.35;
+  let caught=null,frightUntil=0,attraction=0,lastTime=null;
+  const released=new THREE.Vector3();let releaseAt=-10;
   return {group,update(t) {
-    const depart=smooth(130,150,t),near=smooth(80,88,t)*(1-depart);
+    const depart=smooth(130,150,t);let near=smooth(80,88,t)*(1-depart);
     // Both the tint and the insects disappear, revealing unmodified passthrough.
     air.update(t,1-depart);
     shade.material.opacity=smooth(0,30,t)*.2*(1-depart);
     flies.uniforms.uOpacity.value=smooth(30,65,t)*(1-depart);
     landed.uniforms.uOpacity.value=t>=80?(1-depart):0;
-    const hand=handPosition();
-    landed.positions.set([hand.x,hand.y+.025,hand.z]);landed.geometry.attributes.position.needsUpdate=true;
+    const hs=hands();
+    if(hs.some(h=>h.speed>1.1))frightUntil=t+1.8;
+    const calm=hs.find(h=>h.open&&h.speed<.15);
+    near*=calm?1:.62;
+    if(t<frightUntil)near*=.08;
+    const dt=lastTime===null?1:Math.min(.1,Math.max(0,t-lastTime));lastTime=t;
+    attraction+=(near-attraction)*(1-Math.exp(-dt*3));near=attraction;
+    if(caught&&(!hs.includes(caught)||!caught.pinch)){released.copy(caught.position);releaseAt=t;caught=null;}
+    if(!caught&&t>=80&&t<130)caught=hs.find(h=>h.pinch&&h.position.distanceTo(new THREE.Vector3().fromArray(landed.positions))<.18)||null;
+    const hand=caught?.position||calm?.position||handPosition();
+    handLight.position.copy(hand);handLight.intensity=t>=80?(caught?.45:.12)*(1-depart):0;
+    landed.uniforms.uOpacity.value=t>=80&&t<frightUntil&&!caught?0:t>=80?(1-depart):0;
+    if(sky)sky.material.color.setScalar(.18*(1-depart));
+    landed.positions.set(t-releaseAt<2&&!caught?[released.x, released.y+.025+(t-releaseAt)*.25,released.z-(t-releaseAt)*.3]:[hand.x,hand.y+.025,hand.z]);landed.geometry.attributes.position.needsUpdate=true;
     for(let i=0;i<100;i++) {
       const p=i*3,ph=flies.phases[i],r=.25+(i%9)*.105;
       // Nested sine fields have smooth velocity changes and no straight-line flight.
