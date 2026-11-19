@@ -86,3 +86,10 @@ De lifttoon, warme toon en herkenbare piektonen blijven bewust synthetisch. De l
 - Toegevoegde addons en hun imports komen exact uit de r180-tag. Motion controllers: MIT, licentietekst in `vendor/libs/MOTION-CONTROLLERS-LICENSE.md`.
 - Eigen radiale sprites, regenlijnen, wolkensluiers, stadspunten en insectenbanen uit de eerdere rondes blijven in gebruik. Geen externe demoshaders overgenomen. De eerder als CC0 aangeboden procedurele vormgeving blijft CC0-1.0.
 - `tools/fetch_assets.py` is uitsluitend een bouwscript met internettoegang; de website voert het niet uit.
+
+
+## Ronde 5 ? De plank
+
+- `gedeeld/plank-stad.js`: oorspronkelijke procedurele stadsgeometrie, raamshader, verkeersbanen en gesynthetiseerde stadsruis/sirene; voor dit project gemaakt en aangeboden onder CC0-1.0. Geen externe stadsbeelden, shaders, modellen of geluidsopnames overgenomen; geen nieuwe mediabestanden. De synthese gebruikt de bestaande deterministische ruisbuffer en WebAudio-oscillator.
+- `belevingen/plank.js`: uitsluitend bij De plank is het zichtbare Rogland-panorama vervangen door de procedurele nachtlucht met zwakke oranje gloed. De hierboven vermelde CC0-HDR blijft omgevingslicht leveren; hout, metaal en wind behouden hun bestaande bron/licentie. De deur-opname blijft de piekcue op 01:00; deze wordt hier niet meer als landing gebruikt.
+- Wolken gebruiken de bestaande eigen CC0-ruissluier in `gedeeld/licht.js`, nu in twee lagen. Alle nieuwe procedurele onderdelen werken lokaal, zonder externe netwerkverzoeken.

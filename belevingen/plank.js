@@ -1,12 +1,20 @@
 ﻿import * as THREE from 'three';
-import {smooth,plane,random} from '../gedeeld/util.js';
+import {smooth,plane} from '../gedeeld/util.js';
 import {material,environment,box} from '../gedeeld/assets.js';
-import {atmosphere,particles,veil} from '../gedeeld/licht.js';
+import {atmosphere,veil} from '../gedeeld/licht.js';
+
+import {plankStad,plankStadsGeluid} from '../gedeeld/plank-stad.js';
 
 export function plank({scene,headPosition,audio,assets,hands}) {
   const group=new THREE.Group();
-  const air=atmosphere(scene,group,{top:0x000107,horizon:0x09172e,density:.0012});
-  const sky=environment(scene,group,assets,{intensity:.4});
+  const air=atmosphere(scene,group,{top:0x000107,horizon:0x09172e,density:.0028});
+  environment(scene,group,assets,{sky:false,intensity:.4});
+  // Keep the ground-bearing panorama out of the background. A warm, low horizon
+  // sits beneath the blue night; the same fog hides the camera's 1 km far clip.
+  const sky=group.children.find(o=>o.renderOrder===-20);
+  sky.material.fragmentShader=sky.material.fragmentShader.replace(
+    'c+=uFlash', 'c+=vec3(.027,.009,.002)*exp(-pow((d.y+.07)*13.,2.)); c+=uFlash');
+  const city=plankStad(group,air),citySound=plankStadsGeluid(audio);
   const steel=material(assets,'metal_plate',{metalness:.85,roughness:.62,color:0x71808e,side:THREE.DoubleSide});
   const wood=material(assets,'rough_wood',{color:0xa59073,side:THREE.DoubleSide});
   group.add(new THREE.HemisphereLight(0x8db2dc,0x101827,.6));
@@ -30,33 +38,6 @@ export function plank({scene,headPosition,audio,assets,hands}) {
   for(const x of [-.198,.198]) {
     const edge=panel(.008,4.4,0xffdbaa,x,.003,-2);edge.rotation.x=-Math.PI/2;edges.push(edge);
   }
-  // Individually seeded streets: 6,400 lights, varied heights and block gaps.
-  const city=particles(group,air,6400,{size:2.1,color:0xffbd76,seed:36});
-  city.points.renderOrder=-5;
-  city.uniforms.uTwinkle.value=.12;
-  city.uniforms.uColor.value.multiplyScalar(2);
-  const rand=random(51);
-  for(let i=0;i<6400;i++) {
-    const x=i%80,z=Math.floor(i/80),street=(x%8===0||z%8===0);
-    city.positions.set([(x-40)*5+(rand()-.5)*1.7,-180+(street?0:rand()*24),(z-40)*5-30+(rand()-.5)*1.7],i*3);
-  }
-  city.geometry.attributes.position.needsUpdate=true;
-  // Long roads share the city's world space: perspective converges below the horizon.
-  const roads=[];
-  for(const x of [-120,-40,40,120]) {
-    const road=panel(.7,440,0xffb66b,x,-179,-30);road.rotation.x=-Math.PI/2;roads.push(road);
-  }
-  for(const z of [-150,-70,10,90]) {
-    const road=panel(400,.7,0xe7ae74,0,-178.9,z);road.rotation.x=-Math.PI/2;roads.push(road);
-  }
-  roads.forEach(road=>{road.renderOrder=-5;road.material.transparent=true;road.material.opacity=.72;road.material.depthWrite=false;});
-  // Three separate cloud altitudes leave moving sightlines down to the city.
-  const clouds=[];
-  for(let i=0;i<6;i++) {
-    const cloud=veil(group,air,{width:105,height:85,color:0x243952,opacity:.18,noiseScale:5});
-    cloud.renderOrder=-4;
-    cloud.rotation.x=-Math.PI/2;cloud.position.set((i%2?1:-1)*48,-22-Math.floor(i/2)*32,-35-Math.floor(i/2)*12);clouds.push(cloud);
-  }
   const strips=[];
   for(let i=0;i<16;i++) {
     const strip=veil(group,air,{width:.055,height:1.35,color:0x9ccce2,opacity:.5,additive:true});
@@ -72,10 +53,10 @@ export function plank({scene,headPosition,audio,assets,hands}) {
   // Loose nut rests on the beam, 42 cm ahead: reach down without walking forward.
 
   const nut=new THREE.Mesh(new THREE.TorusGeometry(.045,.016,6,6),steel);nut.rotation.x=Math.PI/2;nut.position.set(0,.065,-.42);group.add(nut);
-  let holder=null,droppedAt=null,lastTime=null,landed=false,lastWarning=-10;
-  const velocity=new THREE.Vector3(),origin=new THREE.Vector3(0,.065,-.42);
+  let holder=null,droppedAt=null,lastTime=null,lastWarning=-10;
+  const release=new THREE.Vector3(),velocity=new THREE.Vector3(),origin=new THREE.Vector3(0,.065,-.42);
   return {group,update(t) {
-    const fade=1-smooth(136,150,t);air.update(t,fade);sky.material.color.setScalar(.22*fade);scene.environmentIntensity=.4*fade;
+    const fade=1-smooth(136,150,t);air.update(t,fade);city.update(t);citySound.update(t);scene.environmentIntensity=.4*fade;
     const open=smooth(60,64,t)*(1-smooth(130,136,t));
     left.position.x=-.5-open;right.position.x=.5+open;
     floorLeft.position.x=-.6-open*1.8;floorRight.position.x=.6+open*1.8;floorBack.position.z=.6+open*1.8;
@@ -88,23 +69,29 @@ export function plank({scene,headPosition,audio,assets,hands}) {
     if(t>=60&&t<130) {
       if(holder) {
         if(hs.includes(holder)&&holder.pinch){nut.position.copy(holder.position);velocity.set(.15,0,-.1);}
-        else {holder=null;droppedAt=t;landed=false;audio.dropStart(nut.position);}
+        else {holder=null;droppedAt=t;release.copy(nut.position);audio.dropStart(nut.position);if(audio.falling)audio.falling.sound.setRefDistance(18);}
       } else if(droppedAt===null) {
         const h=hs.find(h=>h.position.distanceTo(nut.position)<.13);
-        if(h){if(h.pinch)holder=h;else{droppedAt=t;velocity.set(.35,0,-.4);landed=false;audio.dropStart(nut.position);}}
+        if(h){if(h.pinch)holder=h;else{droppedAt=t;velocity.set(.35,0,-.4);release.copy(nut.position);audio.dropStart(nut.position);if(audio.falling)audio.falling.sound.setRefDistance(18);}}
       }
       if(droppedAt!==null) {
-        velocity.y-=9.81*dt;nut.position.addScaledVector(velocity,dt);nut.rotation.z+=dt*6;audio.dropMove(nut.position,t-droppedAt);
-        if(t-droppedAt>4.3&&!landed){audio.dropLand();landed=true;}
-        if(t-droppedAt>=5){nut.position.copy(origin);droppedAt=null;velocity.set(0,0,0);}
+        const elapsed=t-droppedAt;
+        nut.position.copy(release).addScaledVector(velocity,elapsed);
+        nut.position.y-=4.905*elapsed*elapsed;nut.rotation.z+=dt*6;
+        audio.dropMove(nut.position,elapsed);
+        // No old-ground impact: vanish at 300 m, then offer the next nut.
+        if(nut.position.y<=-300){
+          if(audio.falling?.sound.isPlaying)audio.falling.sound.stop();
+          audio.falling=null;nut.position.copy(origin);droppedAt=null;velocity.set(0,0,0);
+        }
       }
     }
+    if(t>=130&&audio.falling){if(audio.falling.sound.isPlaying)audio.falling.sound.stop();audio.falling=null;}
     const ascent=smooth(20,28,t)*(1-smooth(58,60,t));
     strips.forEach((s,i)=>{
       s.position.y=((i*.43-t*(t<130?1.3:-.85))%4+4)%4-.5;
       s.material.uniforms.uOpacity.value=.12+.65*(ascent+smooth(130,138,t))*(.9+.1*Math.sin(t*.8));
     });
-    clouds.forEach((c,i)=>c.position.x=(i%2?1:-1)*48+Math.sin(t*.014+i)*12);
     surfaces.forEach(({mesh,color})=>{if(mesh.material!==steel)mesh.material.color.copy(color).multiplyScalar(fade);});
     steel.color.setRGB(.17*fade,.2*fade,.24*fade);wood.color.setRGB(.6*fade,.45*fade,.3*fade);ceilingLight.intensity=6*fade;
   }};
