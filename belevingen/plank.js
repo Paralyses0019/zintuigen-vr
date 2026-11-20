@@ -97,6 +97,7 @@ export function plank({scene,headPosition,audio,assets,hands,requestPeak}) {
     if((previous===null||previous<23)&&t>=23)hands().forEach(h=>h.pulse?.(.5,85));
     previous=t;
     const open=smooth(23,25,t)*(1-smooth(80,87,t));
+    const reach=1.2+3.2*smooth(23,26,t)*(1-smooth(80,87,t));
     left.position.x=-.5-open;right.position.x=.5+open;
     floorLeft.position.x=-.6-open*1.8;floorRight.position.x=.6+open*1.8;floorBack.position.z=.6+open*1.8;
     threshold.visible=open<.15;door.enabled=t<23;
@@ -114,7 +115,9 @@ export function plank({scene,headPosition,audio,assets,hands,requestPeak}) {
     }
     const age=t-beamAt;
     const sag=age<1?.026*Math.sin(Math.PI*age)**2:0;
-    board.position.y=-.06-sag;edges.forEach(e=>{e.visible=open>.1;e.position.y=.003-sag;});
+    // De balk schuift pas uit de lift als de deur opengaat, als een loopplank.
+    board.scale.z=reach/4.4;board.position.z=.2-reach/2;
+    board.position.y=-.06-sag;edges.forEach(e=>{e.visible=open>.1;e.position.y=.003-sag;e.scale.y=reach/4.4;e.position.z=.2-reach/2;});
     if(t>=nextGust&&t<80){
       audio.burst(side*2,1.5,-.2,1.9,.32,480,{attack:.6,endFrequency:1700});
       hands().forEach(h=>h.pulse?.(.18,80));side*=-1;nextGust=t+8+Math.random()*4;

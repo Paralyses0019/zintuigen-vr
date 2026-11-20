@@ -13,9 +13,9 @@ import {donker} from './belevingen/donker.js';
 
 const experiences=[
   {name:'De plank',duration:90,minimum:87,peak:23,create:plank},
-  {name:'Schuilplek',duration:90,minimum:75,peak:40,create:schuilplek},
-  {name:'Vuurvliegjes in je lokaal',duration:90,minimum:75,peak:45,create:vuurvliegjes},
-  {name:'Donker',duration:80,minimum:75,peak:45,create:donker}
+  {name:'Schuilplek',duration:90,minimum:62,peak:40,create:schuilplek},
+  {name:'Vuurvliegjes in je lokaal',duration:90,minimum:65,peak:45,create:vuurvliegjes},
+  {name:'Donker',duration:80,minimum:60,peak:45,create:donker}
 ];
 const $=s=>document.querySelector(s);
 const menu=$('#menu'),tiles=$('#tiles'),detail=$('#detail'),view=$('#view'),start=$('#start');
