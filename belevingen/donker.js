@@ -62,6 +62,82 @@ function figureGeometry() {
   g.computeVertexNormals();return g;
 }
 
+// De schim als stofwolk: punten verdeeld over het lijf (naar oppervlakte), die
+// langzaam opstijgen en aan de randen uitrafelen. Alleen echo's en de eigen
+// gloed achter je maken ze zichtbaar.
+function dustGeometry(body,count=7000,seed=7) {
+  const rand=random(seed),pos=body.attributes.position,nor=body.attributes.normal,index=body.index.array;
+  const a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),n=new THREE.Vector3(),tmp=new THREE.Vector3();
+  const areas=[];let total=0;
+  for(let i=0;i<index.length;i+=3){
+    a.fromBufferAttribute(pos,index[i]);b.fromBufferAttribute(pos,index[i+1]);c.fromBufferAttribute(pos,index[i+2]);
+    total+=tmp.subVectors(b,a).cross(n.subVectors(c,a)).length()/2;areas.push(total);
+  }
+  const position=new Float32Array(count*3),normal=new Float32Array(count*3),seeds=new Float32Array(count);
+  for(let k=0;k<count;k++){
+    const r=rand()*total;let lo=0,hi=areas.length-1;
+    while(lo<hi){const mid=(lo+hi)>>1;if(areas[mid]<r)lo=mid+1;else hi=mid;}
+    const i=lo*3;let u=rand(),v=rand();if(u+v>1){u=1-u;v=1-v;}
+    a.fromBufferAttribute(pos,index[i]);b.fromBufferAttribute(pos,index[i+1]);c.fromBufferAttribute(pos,index[i+2]);
+    tmp.copy(a).multiplyScalar(1-u-v).addScaledVector(b,u).addScaledVector(c,v);
+    n.fromBufferAttribute(nor,index[i]).multiplyScalar(1-u-v).addScaledVector(c.fromBufferAttribute(nor,index[i+2]),v)
+      .addScaledVector(b.fromBufferAttribute(nor,index[i+1]),u).normalize();
+    // Een deel zweeft los van het lijf: de rand van de schim is nooit scherp.
+    tmp.addScaledVector(n,(rand()-.3)*.035*(1+3*rand()**4));
+    position.set(tmp.toArray(),k*3);normal.set(n.toArray(),k*3);seeds[k]=rand();
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(position,3));
+  g.setAttribute('aNormal',new THREE.BufferAttribute(normal,3));
+  g.setAttribute('aSeed',new THREE.BufferAttribute(seeds,1));
+  return g;
+}
+function dustMaterial(shared,gain) {
+  const uniforms={...shared,uGain:{value:gain},uOutline:{value:1},uSelf:{value:0},uProjection:{value:700}};
+  const material=new THREE.ShaderMaterial({uniforms,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+    vertexShader:`attribute float aSeed;attribute vec3 aNormal;
+    uniform vec4 uPulse[${MAX}];uniform float uStrength[${MAX}];uniform vec3 uColor[${MAX}];
+    uniform float uTime,uGain,uSelf,uProjection;varying vec3 vColor;
+    void main(){
+      float speed=.04+.1*fract(aSeed*13.7),life=fract(aSeed*7.31+uTime*speed);
+      float wisp=step(.8,fract(aSeed*31.3));
+      vec3 p=position+aNormal*(.006+.06*wisp*life);
+      p+=vec3(sin(uTime*.7+aSeed*40.)*.014,life*(.03+.32*wisp),cos(uTime*.6+aSeed*25.)*.014);
+      float live=sin(life*3.14159);
+      vec3 w=(modelMatrix*vec4(p,1.)).xyz;
+      vec3 c=vec3(0.);
+      for(int i=0;i<${MAX};i++){
+        float age=uTime-uPulse[i].w;if(age<0.||age>4.)continue;
+        float s=uStrength[i],d=distance(w,uPulse[i].xyz),r=age*6.5,reach=2.+s*11.;
+        float range=(1.-smoothstep(reach*.45,reach,d))/(1.+d*.18);
+        float ring=exp(-pow((d-r)/(.18+age*.08),2.));
+        float trail=d<r?exp(-(r-d)*.55)*.5:0.;
+        c+=uColor[i]*(ring*2.2+trail*1.4)*range*s*exp(-age*.7);
+      }
+      c+=uSelf*vec3(.16,.2,.3)*(.25+.75*fract(aSeed*91.));
+      vColor=c*uGain*live*(1.-.5*wisp);
+      vec4 mv=viewMatrix*vec4(w,1.);
+      gl_PointSize=clamp((.005+.007*fract(aSeed*5.3))*uProjection/max(.1,-mv.z),1.6,14.);
+      gl_Position=projectionMatrix*mv;
+    }`,
+    fragmentShader:`varying vec3 vColor;
+    void main(){float r=length(gl_PointCoord-.5)*2.;if(r>=1.)discard;
+      gl_FragColor=vec4(vColor*exp(-r*r*2.5)*.8,1.);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`});
+  return material;
+}
+function dustFigure(geometry,material) {
+  const points=new THREE.Points(geometry,material),viewport=new THREE.Vector4();
+  points.frustumCulled=false;
+  points.onBeforeRender=(renderer,scene,camera)=>{
+    renderer.getCurrentViewport(viewport);
+    material.uniforms.uProjection.value=viewport.w*camera.projectionMatrix.elements[5]*.5;
+  };
+  return points;
+}
+
 export function donker({scene,hands,audio,headPosition,forward,requestPeak}) {
   const group=new THREE.Group();scene.background=new THREE.Color(0);scene.fog=null;
   const rand=random(4242);
@@ -96,14 +172,14 @@ export function donker({scene,hands,audio,headPosition,forward,requestPeak}) {
   const door=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.3,.1),detail);door.position.set(-2.5,1.15,7.95);group.add(door);
 
   // Drie schimmen op 7 tot 8 m, voor je, rechts en achter je.
-  const body=figureGeometry();
+  const body=figureGeometry(),dust=dustGeometry(body);
   const figures=[[-.35,7.2],[1.9,7.8],[3.6,7.4]].map(([angle,distance])=>{
-    const material=echoMaterial(shared,{outline:1,gain:1.6});
-    const mesh=new THREE.Mesh(body,material);group.add(mesh);
+    const material=dustMaterial(shared,1.6);
+    const mesh=dustFigure(dust,material);group.add(mesh);
     return {mesh,material,angle,distance,seen:false,lastSeen:-9,moved:-9,fled:-9};
   });
-  const behind=echoMaterial(shared,{outline:1,gain:2});
-  const neckFigure=new THREE.Mesh(body,behind);neckFigure.visible=false;group.add(neckFigure);
+  const behind=dustMaterial(shared,2);
+  const neckFigure=dustFigure(dust,behind);neckFigure.visible=false;group.add(neckFigure);
 
   // Lichtpuntjes op je vingertoppen, zodat je weet waar je handen zijn.
   const tipMaterial=new THREE.MeshBasicMaterial({color:0x9fc2ff,transparent:true,opacity:.5,depthWrite:false});
@@ -126,7 +202,7 @@ export function donker({scene,hands,audio,headPosition,forward,requestPeak}) {
     const dt=last===null?.016:Math.min(.1,t-last);last=t;shared.uTime.value=t;
     const head=headPosition(),hs=hands();
     const fade=1-smooth(74,80,t);
-    for(const m of [hall,detail,behind,...figures.map(f=>f.material)])m.uniforms.uGain.value=(m===behind?2:m.uniforms.uOutline.value===1?1.6:1)*fade;
+    for(const m of [hall,detail,behind,...figures.map(f=>f.material)])m.uniforms.uGain.value=(m===behind?2:m.uniforms.uOutline.value===1?3.4:1)*fade;
 
     // Je handen: knippen, pinch of trigger is een tik; twee handen tegen elkaar is een klap.
     hs.forEach((h,i)=>{
