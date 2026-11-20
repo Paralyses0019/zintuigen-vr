@@ -12,10 +12,10 @@ import {vuurvliegjes} from './belevingen/vuurvliegjes.js';
 import {donker} from './belevingen/donker.js';
 
 const experiences=[
-  {name:'De plank',duration:150,peak:60,create:plank},
-  {name:'Schuilplek',duration:155,peak:75,create:schuilplek},
-  {name:'Vuurvliegjes in je lokaal',duration:150,peak:80,create:vuurvliegjes},
-  {name:'Donker',duration:140,peak:90,create:donker}
+  {name:'De plank',duration:90,minimum:87,peak:23,create:plank},
+  {name:'Schuilplek',duration:90,minimum:75,peak:40,create:schuilplek},
+  {name:'Vuurvliegjes in je lokaal',duration:90,minimum:75,peak:45,create:vuurvliegjes},
+  {name:'Donker',duration:80,minimum:75,peak:45,create:donker}
 ];
 const $=s=>document.querySelector(s);
 const menu=$('#menu'),tiles=$('#tiles'),detail=$('#detail'),view=$('#view'),start=$('#start');
@@ -42,9 +42,10 @@ const headPosition=()=>head;
 const handPosition=()=>inputs.hands()[0]?.position||target.set(0,1.2,-.45);
 let assets=null,loadToken=0;
 const durationLabel=d=>`${Math.floor(d/60)}:${String(d%60).padStart(2,'0')}`;
+const timeRange=e=>durationLabel(e.minimum)+'–'+durationLabel(e.duration);
 experiences.forEach((experience,i)=>{
   const button=document.createElement('button');button.className='tile';
-  button.innerHTML=`<span>0${i+1} / ${durationLabel(experience.duration)}</span><strong>${experience.name}</strong>`;
+  button.innerHTML=`<span>0${i+1} / ${timeRange(experience)}</span><strong>${experience.name}</strong>`;
   button.onclick=()=>choose(i);tiles.append(button);
 });
 async function choose(i) {
@@ -52,7 +53,7 @@ async function choose(i) {
   audio?.stop();audio=new Sound();const selectedAudio=audio;
   selected=i;tiles.hidden=true;detail.hidden=false;
   $('#number').textContent=`0${i+1}`;$('#title').textContent=experiences[i].name;
-  $('#duration').textContent=durationLabel(experiences[i].duration);
+  $('#duration').textContent=timeRange(experiences[i]);
   $('#loading').hidden=false;$('#progress').value=0;
   try {
     const loaded=await loadAssets(i,renderer,n=>{if(token===loadToken)$('#progress').value=n;});
@@ -120,15 +121,14 @@ function begin() {
   camera.rotation.set(0,0,0);camera.position.set(0,1.65,0);yaw=pitch=0;
   renderer.setClearColor(0x000000,mode==='ar'?0:1);
   const experience=experiences[selected];
-  world=experience.create({scene,mode,headPosition,handPosition,hands:inputs.hands,audio,assets});scene.add(world.group);
+  inputs.reset();
+  world=experience.create({scene,mode,headPosition,handPosition,forward,requestPeak:()=>timeline.trigger(experience.peak),hands:inputs.hands,audio,assets});scene.add(world.group);
   const value=Number(new URLSearchParams(location.search).get('t'));
   const offset=Math.max(0,Math.min(experience.duration-.01,Number.isFinite(value)?value:0));
   timeline=new Timeline(offset);
   timeline.at(experience.peak,()=>{
     audio.peak(selected);
-    if(selected===2)for(const source of renderer.xr.getSession()?.inputSources||[]) {
-      source.gamepad?.hapticActuators?.[0]?.pulse(.35,100)?.catch(()=>{});
-    }
+
   });
   audio.start(selected,timeline);renderer.setAnimationLoop(frame);
 }
@@ -148,7 +148,7 @@ function frame() {
   activeCamera.updateMatrixWorld();activeCamera.getWorldPosition(head);activeCamera.getWorldQuaternion(rotation);
   forward.set(0,0,-1).applyQuaternion(rotation);up.set(0,1,0).applyQuaternion(rotation);
   audio.listen(head,forward,up);
-  inputs.update(t,selected===3);world.update(t);audio.update(t);renderer.render(scene,camera);
+  inputs.update(t,selected===3);world.update(t);audio.update(timeline.current);renderer.render(scene,camera);
 }
 addEventListener('resize',()=>{
   camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);

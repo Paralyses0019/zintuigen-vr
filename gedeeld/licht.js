@@ -181,7 +181,7 @@ export function warmCore(group) {
     return {sprite,size,opacity};
   });
   return {update(t,fade) {
-    const lit=t>=75?fade:0,breath=.96+.04*Math.sin(t*1.7);
+    const lit=fade,breath=.96+.04*Math.sin(t*1.7);
     for(const {sprite,size,opacity} of sprites) {
       sprite.material.opacity=opacity*lit*breath;
       sprite.scale.set(size*breath,size*breath,1);

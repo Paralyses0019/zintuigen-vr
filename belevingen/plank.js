@@ -1,11 +1,12 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 import {smooth,plane} from '../gedeeld/util.js';
 import {material,environment,box} from '../gedeeld/assets.js';
 import {atmosphere,veil} from '../gedeeld/licht.js';
 
+import {interactions} from '../gedeeld/interactie.js';
 import {plankStad,plankStadsGeluid} from '../gedeeld/plank-stad.js';
 
-export function plank({scene,headPosition,audio,assets,hands}) {
+export function plank({scene,headPosition,audio,assets,hands,requestPeak}) {
   const group=new THREE.Group();
   const air=atmosphere(scene,group,{top:0x000107,horizon:0x09172e,density:.0028});
   environment(scene,group,assets,{sky:false,intensity:.4});
@@ -14,7 +15,12 @@ export function plank({scene,headPosition,audio,assets,hands}) {
   const sky=group.children.find(o=>o.renderOrder===-20);
   sky.material.fragmentShader=sky.material.fragmentShader.replace(
     'c+=uFlash', 'c+=vec3(.027,.009,.002)*exp(-pow((d.y+.07)*13.,2.)); c+=uFlash');
-  const city=plankStad(group,air),citySound=plankStadsGeluid(audio);
+  const district=new THREE.Group();district.name='stad';group.add(district);
+  const street=new THREE.MeshStandardMaterial({color:0x26303b,roughness:.8});
+  box(district,street,26,.12,60,0,-330,-12);
+  const walkers=new THREE.InstancedMesh(new THREE.SphereGeometry(.1,5,4),new THREE.MeshBasicMaterial({color:0xe5ac73}),28);
+  district.add(walkers);const person=new THREE.Object3D();
+  const city=plankStad(district,air),citySound=plankStadsGeluid(audio);
   const steel=material(assets,'metal_plate',{metalness:.85,roughness:.62,color:0x71808e,side:THREE.DoubleSide});
   const wood=material(assets,'rough_wood',{color:0xa59073,side:THREE.DoubleSide});
   group.add(new THREE.HemisphereLight(0x8db2dc,0x101827,.6));
@@ -33,7 +39,9 @@ export function plank({scene,headPosition,audio,assets,hands}) {
   const left=panel(1,3,0x080d15,-.5,1.5,-1),right=panel(1,3,0x080d15,.5,1.5,-1);
   const board=box(group,wood,.4,.12,4.4,0,-.06,-2);
   // Lift wall surfaces use the same photographed brushed metal set.
-  surfaces.forEach(({mesh})=>{mesh.material.dispose();mesh.material=steel;});
+  const glass=new THREE.MeshStandardMaterial({color:0xa9cbd7,transparent:true,opacity:.13,
+    metalness:.55,roughness:.14,side:THREE.DoubleSide,depthWrite:false});
+  surfaces.forEach(({mesh})=>{mesh.material.dispose();mesh.material=glass;});
   const edges=[];
   for(const x of [-.198,.198]) {
     const edge=panel(.008,4.4,0xffdbaa,x,.003,-2);edge.rotation.x=-Math.PI/2;edges.push(edge);
@@ -53,46 +61,86 @@ export function plank({scene,headPosition,audio,assets,hands}) {
   // Loose nut rests on the beam, 42 cm ahead: reach down without walking forward.
 
   const nut=new THREE.Mesh(new THREE.TorusGeometry(.045,.016,6,6),steel);nut.rotation.x=Math.PI/2;nut.position.set(0,.065,-.42);group.add(nut);
-  let holder=null,droppedAt=null,lastTime=null,lastWarning=-10;
-  const release=new THREE.Vector3(),velocity=new THREE.Vector3(),origin=new THREE.Vector3(0,.065,-.42);
+  const controlMat=new THREE.MeshStandardMaterial({color:0x72aab7});
+  const button=box(group,controlMat,.11,.15,.04,.34,1.13,-.47);
+  // Illuminated door-open pictogram on the fixed call button.
+  for(const side of [-1,1]){
+    const arrow=new THREE.Mesh(new THREE.CircleGeometry(.017,3),new THREE.MeshBasicMaterial({color:0xc4f5ff}));
+    arrow.rotation.z=side<0?Math.PI:0;arrow.position.set(side*.021,0,.021);button.add(arrow);
+  }
+  const pedestal=box(group,steel,.035,1.05,.04,.34,.54,-.47);
+  const grabs=interactions(hands,audio);
+  const nutMat=steel.clone();nut.material=nutMat;
+  const origin=nut.position.clone();
+  // A fall lasts almost eight seconds, so the replacement can already be in flight.
+  const falls=Array.from({length:2},()=>{
+    const mesh=nut.clone();group.add(mesh);mesh.visible=false;
+    return {mesh,release:new THREE.Vector3(),start:-Infinity,sound:null};
+  });
+  let now=0,dropAt=-Infinity,beamAt=-Infinity,leaning=false,nextGust=32,side=1,previous=null;
+  let nudged=false,baseline=null,lastWarning=-10;
+  const nutTarget=grabs.add(nut,nutMat,{onRelease(){
+    const fall=falls.reduce((a,b)=>a.start<b.start?a:b);
+    fall.release.copy(nut.position);fall.start=dropAt=now;fall.sound=audio.dropStart(fall.release);
+  }});
+  const door=grabs.add(button,controlMat,{fixed:true,onGrab(){nudged=true;}});
   return {group,update(t) {
-    const fade=1-smooth(136,150,t);air.update(t,fade);city.update(t);citySound.update(t);scene.environmentIntensity=.4*fade;
-    const open=smooth(60,64,t)*(1-smooth(130,136,t));
+    now=t;const dt=previous===null?0:Math.min(.08,t-previous);
+    const fade=1-smooth(80,90,t);air.update(t,fade);city.update(t);citySound.update(t);scene.environmentIntensity=.4*fade;
+    district.position.y=330*(1-smooth(2,18,t));
+    for(let i=0;i<walkers.count;i++){
+      person.position.set((i%2?1:-1)*(2+i%3*.37),-328.5,5-(i*1.7+t*.45)%25);
+      person.updateMatrix();walkers.setMatrixAt(i,person.matrix);
+    }
+    walkers.instanceMatrix.needsUpdate=true;
+    if(previous!==null&&previous<2&&t>=2)hands().forEach(h=>h.pulse?.(.22,95));
+    if((previous===null||previous<23)&&t>=23)hands().forEach(h=>h.pulse?.(.5,85));
+    previous=t;
+    const open=smooth(23,25,t)*(1-smooth(80,87,t));
     left.position.x=-.5-open;right.position.x=.5+open;
     floorLeft.position.x=-.6-open*1.8;floorRight.position.x=.6+open*1.8;floorBack.position.z=.6+open*1.8;
-    threshold.visible=open<.15;
+    threshold.visible=open<.15;door.enabled=t<23;
+    button.position.x=pedestal.position.x=.34+open*1.8;
+    button.visible=pedestal.visible=open<.98;
     const head=headPosition();
-    if(open>.95&&Math.abs(head.x)>.25&&head.z<.2&&t-lastWarning>5){audio.fall();lastWarning=t;}
-    board.visible=true;edges.forEach(e=>e.visible=t>=60);nut.visible=t>=60&&t<130;
-    const dt=lastTime===null?0:Math.min(.05,Math.max(0,t-lastTime));lastTime=t;
-    const hs=hands();
-    if(t>=60&&t<130) {
-      if(holder) {
-        if(hs.includes(holder)&&holder.pinch){nut.position.copy(holder.position);velocity.set(.15,0,-.1);}
-        else {holder=null;droppedAt=t;release.copy(nut.position);audio.dropStart(nut.position);if(audio.falling)audio.falling.sound.setRefDistance(18);}
-      } else if(droppedAt===null) {
-        const h=hs.find(h=>h.position.distanceTo(nut.position)<.13);
-        if(h){if(h.pinch)holder=h;else{droppedAt=t;velocity.set(.35,0,-.4);release.copy(nut.position);audio.dropStart(nut.position);if(audio.falling)audio.falling.sound.setRefDistance(18);}}
-      }
-      if(droppedAt!==null) {
-        const elapsed=t-droppedAt;
-        nut.position.copy(release).addScaledVector(velocity,elapsed);
-        nut.position.y-=4.905*elapsed*elapsed;nut.rotation.z+=dt*6;
-        audio.dropMove(nut.position,elapsed);
-        // No old-ground impact: vanish at 300 m, then offer the next nut.
-        if(nut.position.y<=-300){
-          if(audio.falling?.sound.isPlaying)audio.falling.sound.stop();
-          audio.falling=null;nut.position.copy(origin);droppedAt=null;velocity.set(0,0,0);
-        }
-      }
+    if(!baseline)baseline=head.clone();else if(t<23)baseline.copy(head);
+    const lean=Math.hypot(head.x-baseline.x,Math.min(0,head.z-baseline.z));
+    if(open>.9&&lean>.15&&!leaning){
+      leaning=true;beamAt=t;hands().forEach(h=>h.pulse?.(.12,35));audio.burst(0,0,-.25,.42,.22,440,{endFrequency:120});
     }
-    if(t>=130&&audio.falling){if(audio.falling.sound.isPlaying)audio.falling.sound.stop();audio.falling=null;}
-    const ascent=smooth(20,28,t)*(1-smooth(58,60,t));
+    if(lean<.12)leaning=false;
+    if(open>.95&&Math.abs(head.x-baseline.x)>.25&&t-lastWarning>5){
+      audio.burst(head.x,.1,head.z,.55,.14,540,{endFrequency:95});lastWarning=t;
+    }
+    const age=t-beamAt;
+    const sag=age<1?.026*Math.sin(Math.PI*age)**2:0;
+    board.position.y=-.06-sag;edges.forEach(e=>{e.visible=open>.1;e.position.y=.003-sag;});
+    if(t>=nextGust&&t<80){
+      audio.burst(side*2,1.5,-.2,1.9,.32,480,{attack:.6,endFrequency:1700});
+      hands().forEach(h=>h.pulse?.(.18,80));side*=-1;nextGust=t+8+Math.random()*4;
+    }
+    const elapsed=t-dropAt;
+    for(const fall of falls){
+      const age=t-fall.start,mesh=fall.mesh;
+      mesh.visible=age<Math.sqrt(2*(300+fall.release.y)/9.81)&&t<80;
+      if(mesh.visible){
+        mesh.position.copy(fall.release);mesh.position.y-=4.905*age*age;
+        mesh.position.x+=age*.17;mesh.rotation.z=age*4;audio.dropMove(mesh.position,age,fall.sound);
+      }else if(fall.sound){if(fall.sound.sound.isPlaying)fall.sound.sound.stop();fall.sound=null;}
+    }
+    nut.visible=nutTarget.enabled=t>=23&&t<80&&elapsed>=5;
+    if(!nutTarget.holder)nut.position.copy(origin).y-=sag;
+    const wasTouching=nutTarget.touch;
+    grabs.update(dt);
+    if(nutTarget.enabled&&nutTarget.touch&&!wasTouching&&!nutTarget.holder)nutTarget.onRelease();
+    if(t>=18&&t<23&&!door.near)controlMat.emissive.setHex(0x59a4bf);
+    if(t>=20&&t<23&&(nudged||door.touch))requestPeak();
+    const ascent=smooth(2,4,t)*(1-smooth(16,18,t));
     strips.forEach((s,i)=>{
-      s.position.y=((i*.43-t*(t<130?1.3:-.85))%4+4)%4-.5;
-      s.material.uniforms.uOpacity.value=.12+.65*(ascent+smooth(130,138,t))*(.9+.1*Math.sin(t*.8));
+      s.position.y=((i*.43-t*(t<80?1.3:-.85))%4+4)%4-.5;
+      s.material.uniforms.uOpacity.value=.12+.65*(ascent+smooth(80,87,t))*(.9+.1*Math.sin(t*.8));
     });
-    surfaces.forEach(({mesh,color})=>{if(mesh.material!==steel)mesh.material.color.copy(color).multiplyScalar(fade);});
+    surfaces.forEach(({mesh,color})=>{if(mesh.material!==glass)mesh.material.color.copy(color).multiplyScalar(fade);});
     steel.color.setRGB(.17*fade,.2*fade,.24*fade);wood.color.setRGB(.6*fade,.45*fade,.3*fade);ceilingLight.intensity=6*fade;
   }};
 }

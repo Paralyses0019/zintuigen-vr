@@ -1,4 +1,4 @@
-﻿// One monotonic clock, shared by image and audio. Seeking skips past cues;
+// One monotonic clock, shared by image and audio. Seeking skips past cues;
 // a cue exactly at the requested ?t= offset is still played once.
 export class Timeline {
   constructor(offset=0) {
@@ -10,8 +10,15 @@ export class Timeline {
     this.cues.push({second,fn,done:second<this.offset-.001});
     return this;
   }
+  trigger(second) {
+    if(this.current>=second)return;
+    for(const cue of this.cues)if(cue.second<second)cue.done=true;
+    this.offset+=second-this.current;
+    this.update();
+  }
   update() {
     const now=this.offset+(performance.now()-this.start)/1000;
+    this.current=now;
     for(const cue of this.cues) {
       if(!cue.done&&now>=cue.second){cue.done=true;cue.fn();}
     }

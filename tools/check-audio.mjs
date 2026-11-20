@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict';
+import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {Sound} from '../gedeeld/audio.js';
 class Param {
@@ -23,11 +23,13 @@ for(let id=0;id<4;id++) {
  const sound=new Sound(),scene=new THREE.Scene();
  await sound.load(Object.fromEntries(['rain','rain-bed','wind','wind-bed','fire','roof','crickets','crickets-bed','steps','door','drop','thunder'].map(k=>[k,new ArrayBuffer(1)])),scene);
  const cues=[];sound.start(id,{at(t,fn){cues.push([t,fn]);}});
- for(const t of [0,40,60,75,80,90,92,95,130,139]){sound.update(t);sound.peak(id);}
+ for(const t of [0,2,18,20,23,25,30,40,45,47,50,75,80,90]){sound.update(t);sound.peak(id);}
  for(const [,fn]of cues)fn();
  assert.equal(sound.middle.length,5);
  for(const s of sound.spatialSounds){assert.equal(s.panner.panningModel,'HRTF');assert.equal(s.getDistanceModel(),'inverse');}
- const p=new THREE.Vector3(0,.8,-.4);sound.tap(p);sound.dropStart(p);sound.dropMove(p,2);sound.dropLand();sound.warmth(p,1);sound.reach([{position:p}],85);
- if(id===3){const t=85,angle=(t-90)*.27,dist=6-5.3*((.9*.9)*(3-2*.9));sound.reach([{position:new THREE.Vector3(Math.sin(angle)*dist,.9,Math.cos(angle)*dist)}],t);assert.equal(sound.retreatUntil,87);}
+ const p=new THREE.Vector3(0,.8,-.4);sound.tap(p);const fall=sound.dropStart(p);sound.dropMove(p,2,fall);sound.warmth(p,1);
+ if(id===1){sound.update(35);const outdoor=sound.rain.filter.frequency.value;sound.update(55);assert(sound.rain.filter.frequency.value<outdoor);assert(sound.roof.gain.gain.value>sound.wind.gain.gain.value);}
+ if(id===2){sound.moveSwarm(p);assert.equal(sound.swarm.p.positionY.value,p.y);}
+ if(id===3){sound.darkBuzz(p,.01);sound.update(45);assert.equal(sound.space.gain.value,0);sound.update(47);assert(sound.space.gain.value>0);}
  sound.stop();sound.stop();assert.equal(scene.children.length,0);console.log('audio',id,'routing, finite envelopes, layers and cleanup OK (mock AudioContext)');
 }

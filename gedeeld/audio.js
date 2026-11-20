@@ -37,9 +37,7 @@ export class Sound {
     return {sound,gain:sound.gain,filter,p:sound.panner};
   }
   tap(position,volume=.09) {
-    const name=this.recordings.drop?'drop':'wind';
-    const r=this.recording(name,position.x,position.y,position.z,{loop:false,volume,offset:0,ref:.3,duration:.16});
-
+    this.tone(560,.065,position.x,position.y,position.z,volume,'triangle');
   }
   warmth(position,amount) {
     this.handWarmth=amount;
@@ -72,13 +70,14 @@ export class Sound {
     g.gain.exponentialRampToValueAtTime(.0001,now+duration);
     osc.connect(g).connect(p);this.track(osc,[g,p]);osc.start();osc.stop(now+duration+.02);
   }
-  burst(x,y,z,duration=.2,volume=.2,frequency=1500,{direct=false,attack=.01,endFrequency=frequency}={}) {
+  burst(x,y,z,duration=.2,volume=.2,frequency=1500,{direct=false,attack=.01,endFrequency=frequency,sample}={}) {
     const c=this.ctx,src=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain(),p=this.spatial(x,y,z,direct),now=c.currentTime;
-    src.buffer=this.recordings?.fire||this.recordings?.wind||this.buffer;src.loop=true;f.type='bandpass';f.Q.value=.65;
+    src.buffer=this.recordings?.[sample]||this.recordings?.wind||this.buffer;src.loop=true;f.type='bandpass';f.Q.value=.65;
     f.frequency.setValueAtTime(frequency,now);f.frequency.exponentialRampToValueAtTime(endFrequency,now+duration);
     g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(volume,now+attack);
     g.gain.exponentialRampToValueAtTime(.0001,now+duration);
     src.connect(f).connect(g).connect(p);this.track(src,[f,g,p]);src.start();src.stop(now+duration+.02);
+    return p;
   }
   start(id,timeline) {
     this.id=id;
@@ -93,15 +92,26 @@ export class Sound {
     this.drone=this.ctx.createOscillator();this.dg=this.ctx.createGain();this.dp=this.spatial(0,1,-4);
     this.drone.frequency.value=id===0?62:95;this.dg.gain.value=0;
     this.drone.connect(this.dg).connect(this.dp);this.track(this.drone,[this.dg,this.dp]);this.drone.start();
-    this.wet.gain.value=id===3?.55:.08;
-    if(id===1)for(const second of [16,35,50,63,73])timeline.at(second,()=>{
-      this.recording('thunder',-14,4,-24,{loop:false,volume:.6,ref:12});
-      this.tone(44,3.2,-14,4,-24,.17);
+    this.wet.gain.value=id===3?0:.045;
+    if(id===1)for(const second of [3,14,22])timeline.at(second,()=>
+      this.recording('thunder',-12,4,-18,{loop:false,volume:.36,ref:8,duration:2.2}));
+    if(id===1)for(const second of [42,44,47,49])timeline.at(second,()=>{
+      const side=second%2?-.65:.65;
+      this.burst(side,1.9,-.4,.38,.08,950,{attack:.045,endFrequency:240});
     });
-    if(id===3) {
-      timeline.at(67,()=>this.recording('door',-2,1,8,{loop:false,volume:.6,ref:3}));
-      timeline.at(92,()=>this.burst(this.ear.x,this.ear.y,this.ear.z,.5,.15,1100,{direct:true,attack:.06,endFrequency:650}));
+    if(id===2)this.swarm=this.noise(0,1,-1,2400);
+    if(id===3){
+      this.buzz=this.ctx.createOscillator();this.buzz.type='sawtooth';this.buzz.frequency.value=174;
+      this.buzzGain=this.ctx.createGain();this.buzzGain.gain.value=0;this.buzzPan=this.spatial(0,1.6,-.2);
+      this.buzz.connect(this.buzzGain).connect(this.buzzPan);this.track(this.buzz,[this.buzzGain,this.buzzPan]);this.buzz.start();
     }
+  }
+  moveSwarm(position){
+    const p=this.swarm.p;p.positionX.value=position.x;p.positionY.value=position.y;p.positionZ.value=position.z;
+  }
+  darkBuzz(position,level){
+    const p=this.buzzPan;p.positionX.value=position.x;p.positionY.value=position.y;p.positionZ.value=position.z;
+    this.set(this.buzzGain,level);
   }
   set(node,value){node.gain.setTargetAtTime(Math.max(0,value),this.ctx.currentTime,.12);}
   listen(position,forward,up) {
@@ -120,81 +130,45 @@ export class Sound {
   update(t) {
     const id=this.id,now=this.ctx.currentTime;
     this.spatialSounds=this.spatialSounds?.filter(sound=>{if(sound.isPlaying)return true;sound.disconnect();sound.gain.disconnect();this.audioGroup.remove(sound);return false;})||[];
-    const end=[150,155,150,140][id],fade=1-smooth(end-15,end,t);
-    const warm=id===1?smooth(75,95,t):0;
-    if(this.roof){this.set(this.roof.gain,.12*warm*fade);this.roof.filter.frequency.setTargetAtTime(1700,now,.3);}
-    const layer=id===1?smooth(40,60,t)*(1-.7*warm):id===0?.15+.85*smooth(20,64,t):id===3?(t<40?.1:0):.4;
-    this.middle?.forEach(r=>{this.set(r.gain,.075*layer*fade);r.filter.frequency.setTargetAtTime(16000-15000*warm,now,.25);});
-    if(this.bed){this.set(this.bed,.035*layer*fade);this.bedFilter.frequency.setTargetAtTime(18000-17000*warm,now,.25);}
-    if(id===2)this.set(this.close.gain,.035*fade);
-    if(id===0) {
-      this.set(this.close.gain,.025*smooth(60,64,t)*fade);
-      this.set(this.wind.gain,(.02+.2*smooth(20,60,t))*(1-smooth(130,150,t)));
-      this.set(this.dg,.04*fade);
-      this.drone.frequency.setTargetAtTime(62+70*smooth(20,60,t)-70*smooth(130,148,t),now,.3);
-    }
-    if(id===1) {
-      const warm=smooth(75,95,t);
-      this.set(this.wind.gain,(.04+.12*smooth(0,40,t))*(1-.85*warm)*fade);
-      this.set(this.rain.gain,.2*smooth(40,60,t)*(1-.65*warm)*fade);
-      this.rain.filter.frequency.setTargetAtTime(5000-4400*warm,now,.3);
-      this.set(this.close.gain,.16*warm*(1+.5*(this.handWarmth||0))*(1-smooth(145,155,t)));
-      this.set(this.dg,.03*warm*fade*(.92+.08*Math.sin(t*.55)));
-      const k=Math.floor(t*3);
-      if(k!==this.lastEvent) {
-        this.lastEvent=k;
-        if(!this.recordings.fire&&warm&&(k%3===0||k%7===0)&&t<154)this.burst(.15*Math.sin(k),.4,-1.65,.06+.02*(k%3),.045*warm*(1-smooth(147,155,t))+.0001,900+(k%5)*500);
-      }
-    }
-    if(id===2) {
-      this.set(this.wind.gain,.025*fade);this.set(this.dg,.008*fade);
-      const k=Math.floor(t*2);
-      if(k!==this.lastEvent){this.lastEvent=k;if(!this.recordings.crickets&&k%5===0)this.tone(2300+(k%4)*190,.09,3,1,-3,.012*fade+.0001);}
-    }
-    if(id===3) {
-      // Gate both dry sound and reverb: no lingering tail during 01:30–01:32.
-      this.space.gain.setValueAtTime(t>=90&&t<95?0:fade,now);
-      this.wet.gain.setTargetAtTime(t>=95?.08:.55,now,.6);
-      this.set(this.wind.gain,t<90?.018:0);this.set(this.dg,t>=95?.025*fade:0);
-      const k=Math.floor(t*1.6);
-      if(k!==this.lastEvent) {
-        this.lastEvent=k;
-        if(t<40&&k%8===0)this.recording('drop',k%16?-4:4,2,k%16?-7:-3,{loop:false,volume:.18,ref:2});
-        if(t>=40&&t<89.8&&k%2===0&&t>(this.retreatUntil||0)) {
-          // Last approach ends behind the listener (positive z), without moving the camera.
-          const angle=(t-90)*.27,dist=6-5.3*smooth(40,90,t);
-          this.recording('steps',Math.sin(angle)*dist,.9,Math.cos(angle)*dist,{loop:false,volume:.18,ref:1,offset:(k%8)*1.3,duration:.65});
-        }
-      }
+    const end=id===3?80:90,fade=1-smooth(end-10,end,t);
+    const warm=id===1?smooth(40,50,t):0;
+    if(this.roof){this.set(this.roof.gain,.34*warm*(1-smooth(80,88,t)));this.roof.filter.frequency.setTargetAtTime(3300,now,.3);}
+    const layer=id===1?1-.83*warm:id===0?.17+.4*smooth(2,18,t):id===3?0:.35;
+    this.middle.forEach(r=>{this.set(r.gain,.055*layer*fade);r.filter.frequency.setTargetAtTime(14000-13100*warm,now,.25);});
+    if(this.bed){this.set(this.bed,.035*layer*fade);this.bedFilter.frequency.setTargetAtTime(14000-13100*warm,now,.25);}
+    if(id===0){
+      const motor=smooth(2,5,t)*(1-smooth(16,20,t));
+      this.set(this.wind.gain,(.035+.14*motor+.34*smooth(23,25,t))*fade);
+      this.set(this.dg,(.028+.15*motor)*(1-smooth(20,23,t)));this.drone.frequency.setTargetAtTime(50+88*motor,now,.16);
+    }else if(id===1){
+      const storm=(1-.88*warm)*(1-smooth(80,87,t));
+      this.set(this.wind.gain,.22*storm);this.set(this.rain.gain,.26*storm);
+      for(const r of [this.wind,this.rain])r.filter.frequency.setTargetAtTime(6600-5900*warm,now,.2);
+      this.set(this.close.gain,(t>=40?.17:0)*(1+.65*(this.handWarmth||0))*(1-smooth(84,90,t)));
+    }else if(id===2){
+      this.set(this.swarm.gain,.065*smooth(0,3,t)*fade);this.set(this.close.gain,.035*fade);
+    }else{
+      this.space.gain.setValueAtTime(t>=45&&t<47?0:fade,now);
+      this.set(this.dg,t>=50?.036*fade:0);
     }
   }
   peak(id) {
-    if(id===0){this.recording('door',0,1,-1,{loop:false,volume:.5,ref:1});this.tone(180,.9,0,2,-1,.25,'triangle');}
-    if(id===1){this.burst(.12,1.05,-.48,.3,.22,1800);this.tone(390,.8,.12,1.05,-.48,.16);}
-    if(id===2)this.tone(1200,.35,.3,1.3,-.5,.18);
+    if(id===0){this.recording('door',0,1,-1,{loop:false,volume:.5,ref:1,duration:2});this.tone(78,.35,0,0,-.4,.32,'triangle');}
+    if(id===1){
+      const p=this.close.sound?.position||this.ear;
+      this.burst(p.x,p.y,p.z,.48,.26,640,{attack:.08,endFrequency:150});
+      for(const x of [-.7,.7])this.burst(x,1.6,-.25,2.4,.12,1300,{attack:.38,endFrequency:400});
+    }
   }
   dropStart(position) {
-    if(this.falling?.sound.isPlaying)this.falling.sound.stop();
-    this.falling=this.recording('wind',position.x,position.y,position.z,{volume:.25,ref:1.2});
+    return this.recording('wind',position.x,position.y,position.z,{volume:.25,ref:18});
   }
-  dropMove(position,elapsed) {
-    if(!this.falling)return;
-    this.falling.sound.position.copy(position);this.falling.sound.updateMatrixWorld(true);
-    this.falling.filter.frequency.setTargetAtTime(Math.max(120,6000*Math.exp(-elapsed)),this.ctx.currentTime,.1);
-    this.falling.sound.setPlaybackRate(Math.max(.4,1-elapsed*.12));
+  dropMove(position,elapsed,voice) {
+    if(!voice)return;
+    voice.sound.position.copy(position);voice.sound.updateMatrixWorld(true);
+    voice.filter.frequency.setTargetAtTime(Math.max(120,6000*Math.exp(-elapsed)),this.ctx.currentTime,.1);
+    voice.sound.setPlaybackRate(Math.max(.4,1-elapsed*.12));
   }
-  dropLand() {
-    if(this.falling?.sound.isPlaying)this.falling.sound.stop();this.falling=null;
-    this.recording('door',0,-85,-2,{loop:false,volume:1,ref:10,duration:1});
-    this.tone(90,1.5,0,-85,-2,.12);
-  }
-  reach(hands,t) {
-    if(this.id!==3||t<40||t>=90)return;
-    const angle=(t-90)*.27,dist=6-5.3*smooth(40,90,t);
-    this.movingPosition=new THREE.Vector3(Math.sin(angle)*dist,.9,Math.cos(angle)*dist);
-    if(hands.some(h=>h.position.distanceTo(this.movingPosition)<.8)){this.retreatUntil=t+2;for(const s of this.spatialSounds||[])if(s.buffer===this.recordings.steps&&s.isPlaying)s.stop();}
-  }
-  fall(){this.tone(50,1,0,0,-1,.35);this.burst(0,-1,-1,1.2,.3,650,{endFrequency:80});}
   stop(){
     for(const r of this.spatialSounds||[]){if(r.isPlaying)r.stop();r.disconnect();r.gain.disconnect();}
     this.spatialSounds=[];if(this.audioGroup)this.scene.remove(this.audioGroup);

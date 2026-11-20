@@ -1,3 +1,12 @@
+# Aanvulling ronde 6
+
+| Lokale bestanden | Gebruik en maker | Bron en licentie |
+| --- | --- | --- |
+| `assets/rough_linen/{color,normal,roughness}.jpg` | Canvastent. Foto door colormass, bewerking door Rico Cilliers. Diffuse map lokaal crème getint. | [Rough Linen, Poly Haven](https://polyhaven.com/a/rough_linen) · CC0-1.0 |
+| `assets/fabric_pattern_05/{color,normal,roughness}.jpg` | Geruite plaid, Rob Tuytel. Kleurvariant col_01. | [Fabric Pattern 05, Poly Haven](https://polyhaven.com/a/fabric_pattern_05) · CC0-1.0 |
+
+De zes 1K-kaarten worden uitsluitend lokaal geladen. De afzonderlijke download-URL's staan in `assets/sources.json`. Tent, lantaarn, mok, liftschacht, schimmen, zwermbeweging, regenschaduwen en aanvullende gesynthetiseerde geluiden zijn eigen procedureel werk (CC0-1.0). De bestaande opnames voor onder meer dakregen, vuur en voetstappen staan hieronder.
+
 # Bronnen ? ronde 4
 
 Alle media staan lokaal in `assets/`. Geen externe verzoeken tijdens een beleving. De download-URL?s hieronder dienen alleen als bronvermelding; `assets/sources.json` bevat het machineleesbare overzicht. Geraadpleegd op 19 november 2026.

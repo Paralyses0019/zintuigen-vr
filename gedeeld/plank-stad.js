@@ -12,12 +12,13 @@ export function plankStad(group,air) {
   }
   // Flank the sightline, leaving the beam and falling nut above an open street.
   blocks.push([-31,-240,-29,20,180,24],[33,-245,-45,24,170,22]);
+  blocks.push([1.65,-165,3.1,8,330,4],[-7,-306,-12,4,48,9],[9,-294,-19,6,72,7]);
   const uniforms={...air.uniforms};
   const buildings=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.ShaderMaterial({
     uniforms,
     vertexShader:`varying vec3 vWorld,vNormal; varying float vDepth;
       void main(){vec4 w=modelMatrix*instanceMatrix*vec4(position,1.);
-        vWorld=w.xyz;vNormal=normal;vec4 p=viewMatrix*w;vDepth=length(p.xyz);
+        vWorld=(instanceMatrix*vec4(position,1.)).xyz;vNormal=normal;vec4 p=viewMatrix*w;vDepth=length(p.xyz);
         gl_Position=projectionMatrix*p;}`,
     fragmentShader:`varying vec3 vWorld,vNormal;varying float vDepth;
       uniform float uDensity,uFade;uniform vec3 uFog;
@@ -45,7 +46,9 @@ export function plankStad(group,air) {
   const count=1800,positions=new Float32Array(count*3),routes=new Float32Array(count*4);
   for(let i=0;i<count;i++) {
     const lane=Math.floor(rand()*29)-14,direction=i%2?1:-1;
-    routes.set([lane*70+35+direction*3,rand()*2800,8+rand()*15,direction],i*4);
+    const nearby=i<120;
+    const cross=nearby?direction*2.1:lane*70+35+direction*3;
+    routes.set([cross,nearby?i*23.3:rand()*2800,8+rand()*15,direction],i*4);
     positions[i*3]=i%4<2?0:1;
   }
   const geometry=new THREE.BufferGeometry();
@@ -74,7 +77,7 @@ export function plankStad(group,air) {
   const viewport=new THREE.Vector4();
   traffic.onBeforeRender=(renderer,scene,camera)=>{renderer.getCurrentViewport(viewport);trafficUniforms.uProjection.value=viewport.w*camera.projectionMatrix.elements[5]*.5;};
   group.add(traffic);
-  const clouds=[-120,-65].map((y,i)=>{
+  const clouds=[-120].map((y,i)=>{
     const cloud=veil(group,air,{width:850,height:850,color:0x253449,opacity:i?.24:.48,noiseScale:9});
     cloud.name='plank-cloud';cloud.rotation.x=-Math.PI/2;cloud.position.set(0,y,-80);
     cloud.renderOrder=-4+i;return cloud;
@@ -91,7 +94,7 @@ export function plankStadsGeluid(audio) {
   osc.type='triangle';filter.type='lowpass';filter.frequency.value=650;p.refDistance=120;gain.gain.value=0;
   osc.connect(filter).connect(gain).connect(p);audio.track(osc,[filter,gain,p]);osc.start();
   return {update(t){
-    const level=smooth(58,65,t)*(1-smooth(130,145,t));
+    const level=(.32+.68*smooth(20,24,t))*(1-smooth(80,90,t));
     audio.set(rumble.gain,.055*level*(.85+.15*Math.sin(t*.43)));
     const phase=(t-71+32)%32,envelope=smooth(0,2,phase)*(1-smooth(6,9,phase));
     audio.set(gain,.012*level*envelope);

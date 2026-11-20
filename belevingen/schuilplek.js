@@ -1,38 +1,62 @@
 import * as THREE from 'three';
 import {smooth,random} from '../gedeeld/util.js';
 import {atmosphere,particles,veil,rain,warmCore} from '../gedeeld/licht.js';
+import {interactions} from '../gedeeld/interactie.js';
 import {material,environment,box} from '../gedeeld/assets.js';
 
-export function schuilplek({scene,assets,hands,audio}) {
+export function schuilplek({scene,assets,hands,audio,requestPeak}) {
  const group=new THREE.Group();
  const air=atmosphere(scene,group,{top:0x01030a,horizon:0x081627,density:.035});
  const sky=environment(scene,group,assets,{intensity:.16});
  const mud=material(assets,'brown_mud',{roughness:.24,metalness:.12,color:0x7c8794});
- const wood=material(assets,'rough_wood',{color:0x9e7954,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
  const iron=material(assets,'metal_plate',{metalness:.8,roughness:.5,color:0x37302a});
  const ground=new THREE.Mesh(new THREE.PlaneGeometry(80,80),mud);ground.rotation.x=-Math.PI/2;ground.position.y=0;group.add(ground);
  // Repeat by geometry UVs, so one texture set remains shared across all surfaces.
  ground.geometry.attributes.uv.array.forEach((v,i,a)=>a[i]=v*30);
  const rainUniforms=rain(group,air);
- const shelter=new THREE.Group();group.add(shelter);const pieces=[];
- for(const x of [-.78,.78])for(const z of [-.65,.7])pieces.push(box(shelter,wood,.09,2.35,.09,x,1.175,z));
- for(let i=0;i<10;i++) {
-  pieces.push(box(shelter,wood,1.65,.14,.055,0,.18+i*.155,.76));
-  for(const x of [-.8,.8])pieces.push(box(shelter,wood,.055,.14,1.6,x,.18+i*.155,-.05));
+ const shelter=new THREE.Group(),poles=new THREE.Group();group.add(shelter,poles);
+ const canvas=material(assets,'rough_linen',{color:0xffe5b6,side:THREE.DoubleSide,transparent:true,opacity:.89,emissive:0xffa660});
+ const clock={value:0};
+ canvas.onBeforeCompile=shader=>{
+   shader.uniforms.rainTime=clock;
+   shader.fragmentShader='uniform float rainTime;\n'+shader.fragmentShader;
+   shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+     vec2 cells=vMapUv*vec2(45.,17.);float row=floor(cells.x);
+     cells.y+=rainTime*4.+sin(row*14.)*17.;
+     float streak=exp(-38.*pow(fract(cells.x)-.5,2.)-12.*pow(fract(cells.y)-.5,2.));
+     diffuseColor.rgb*=1.-.29*streak;`);
+ };
+ const ridge=2.34,eave=1.18,half=.82,depth=.86;
+ for(const side of [-1,1]){
+   box(shelter,canvas,.016,eave,2*depth,side*half,eave/2,0);
+   const slope=Math.hypot(half,ridge-eave);
+   const roof=box(shelter,canvas,slope,.018,depth*2,side*half/2,(ridge+eave)/2,0);
+   roof.rotation.z=-side*Math.atan2(ridge-eave,half);
+   for(const z of [-depth,depth]){
+     box(poles,iron,.022,eave,.022,side*half,eave/2,z);
+     const spar=box(poles,iron,slope,.026,.026,side*half/2,(ridge+eave)/2,z);
+     spar.rotation.z=roof.rotation.z;
+   }
  }
- // A low pitched roof frames the cold opening directly ahead.
- for(const x of [-.45,.45]){const roof=box(shelter,wood,.96,.065,1.6,x,2.43,.05);roof.rotation.z=x<0?.2:-.2;pieces.push(roof);}
- const floor=box(shelter,wood,1.55,.04,1.55,0,-.02,-.05);pieces.unshift(floor);
- // One instanced draw for the complete timber structure, including its staged build.
- const structure=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),wood,pieces.length);
- structure.frustumCulled=false;
- for(const piece of pieces){const d=piece.geometry.parameters;piece.userData.dimensions=new THREE.Vector3(d.width,d.height,d.depth);piece.geometry.dispose();}
- shelter.clear();shelter.add(structure);
- const matrix=new THREE.Matrix4(),size=new THREE.Vector3();
- const lantern=new THREE.Group();lantern.position.set(.12,1.05,-.48);group.add(lantern);
+ for(const z of [-depth,depth]){
+   const shape=new THREE.Shape();shape.moveTo(-half,0);shape.lineTo(-half,eave);shape.lineTo(0,ridge);
+   shape.lineTo(half,eave);shape.lineTo(half,0);
+   const end=new THREE.Mesh(new THREE.ShapeGeometry(shape),canvas);end.position.z=z;shelter.add(end);
+ }
+ const plaidMat=material(assets,'fabric_pattern_05',{color:0xffddbc});
+ const plaid=box(group,plaidMat,.65,.045,.48,-.31,.023,-.3);
+ const mugMat=new THREE.MeshStandardMaterial({color:0x8a6b50,side:THREE.DoubleSide});
+ const mug=new THREE.Group();mug.position.set(.34,.075,-.33);group.add(mug);
+ const cup=new THREE.Mesh(new THREE.CylinderGeometry(.062,.05,.15,24,1,true),mugMat);mug.add(cup);
+ const tea=new THREE.Mesh(new THREE.CircleGeometry(.057,24),new THREE.MeshStandardMaterial({color:0x482711}));
+ tea.rotation.x=-Math.PI/2;tea.position.y=.058;mug.add(tea);
+ const loop=new THREE.Mesh(new THREE.TorusGeometry(.044,.009,6,16),mugMat);loop.position.x=.065;mug.add(loop);
+ const steam=particles(mug,air,12,{size:.06,color:0xe0d3c6});
+ const lantern=new THREE.Group();lantern.name="lantaarn";lantern.position.set(0,.15,-.45);group.add(lantern);
  box(lantern,iron,.18,.035,.18,0,-.13,0);box(lantern,iron,.2,.04,.2,0,.15,0);
  for(const x of [-.075,.075])for(const z of [-.075,.075])box(lantern,iron,.012,.27,.012,x,0,z);
- const handle=new THREE.Mesh(new THREE.TorusGeometry(.075,.008,5,18,Math.PI),iron);handle.position.y=.17;lantern.add(handle);
+ const handleMat=iron.clone();
+ const handle=new THREE.Mesh(new THREE.TorusGeometry(.075,.008,5,18,Math.PI),handleMat);handle.position.y=.17;lantern.add(handle);
  const glow=new THREE.Group();glow.position.set(0,-.95,1.5);lantern.add(glow);const flame=warmCore(glow);
  // warmCore's local source is translated into the lantern glass; compact flame and halo.
  glow.scale.setScalar(.24);glow.position.set(0,-.228,.36);
@@ -43,39 +67,54 @@ export function schuilplek({scene,assets,hands,audio}) {
  const handDrops=particles(group,air,24,{size:.018,color:0xc1d8ff});handDrops.uniforms.uTwinkle.value=0;
  const dust=particles(group,air,110,{size:.015,bounds:[1.5,2.2,1.5],color:0xffc077});
  const clouds=veil(group,air,{width:70,height:18,color:0x0b1829,opacity:.3});clouds.position.set(0,9,-23);
- let holder=null,lastTap=-1;const lampWorld=new THREE.Vector3();
+ let lastTap=-1,previous=null,primed=false;
+ const grabs=interactions(hands,audio),lampWorld=new THREE.Vector3();
+ grabs.add(lantern,handleMat,{height:.21,floor:.15,gravity:true,onGrab(){primed=true;}});
+ const cupTarget=grabs.add(mug,mugMat,{floor:.075,gravity:true});
+ const blanketTarget=grabs.add(plaid,plaidMat,{floor:.023,gravity:true});
  return {group,update(t) {
-  const grown=smooth(75,95,t),fade=1-smooth(140,155,t),wet=smooth(40,57,t);
-  air.update(t,fade);sky.material.color.setScalar(.15*fade);scene.environmentIntensity=.16*fade;mud.color.setRGB(.2*fade,.25*fade,.3*fade);
-  air.uniforms.uFlash.value=[48,61,71].reduce((v,at)=>v+Math.exp(-Math.pow((t-at)/.12,2)),0);
-  pieces.forEach((p,i)=>{const build=smooth(75+i*.35,78+i*.35,t);size.copy(p.userData.dimensions);size.y*=Math.max(.00001,build);matrix.compose(p.position,p.quaternion,size);structure.setMatrixAt(i,matrix);});
-  structure.visible=t>=75;structure.instanceMatrix.needsUpdate=true;
-  lantern.visible=t>=75;flame.update(t,fade);glow.scale.y=.24*(1+.12*Math.sin(t*19)+.06*Math.sin(t*31));
-  const hs=hands();if(holder&&(!hs.includes(holder)||!holder.pinch))holder=null;
-  if(t>=75&&!holder)holder=hs.find(h=>h.pinch&&h.position.distanceTo(lantern.position)<.15)||null;
-  if(holder)lantern.position.copy(holder.position).add(new THREE.Vector3(0,-.07,0));
-  else {lantern.position.lerp(new THREE.Vector3(.12,1.05,-.48),.06);}
-  lantern.getWorldPosition(lampWorld);let warmth=0;
-  for(const h of hs)warmth=Math.max(warmth,1-smooth(.12,.5,h.position.distanceTo(lampWorld)));
-  light.intensity=(t>=75?3.2:0)*fade*(1+.08*Math.sin(t*23)+.04*Math.sin(t*37));audio.warmth(lampWorld,warmth);
+  const dt=previous===null?0:Math.min(.08,t-previous);previous=t;
+  const grown=smooth(40,50,t),fade=1-smooth(80,90,t),wet=1;
+  air.update(t,fade);clock.value=t;sky.material.color.setScalar(.19*fade);scene.environmentIntensity=.22*fade;
+  air.uniforms.uFlash.value=[3,14,22].reduce((v,at)=>v+Math.exp(-Math.pow((t-at)/.15,2)),0);
+  poles.visible=shelter.visible=t>=40;
+  poles.scale.y=Math.max(.001,smooth(40,46,t));shelter.scale.y=Math.max(.001,grown);
+  shelter.scale.x=.68+.32*grown;
+  canvas.emissiveIntensity=grown*.16*fade;canvas.opacity=.78+.15*grown;
+  mug.visible=cupTarget.enabled=plaid.visible=blanketTarget.enabled=grown>.4;
+  steam.uniforms.uOpacity.value=.22;
+  for(let i=0;i<12;i++){
+   const age=(t*.6+i/12)%1;
+   steam.positions.set([.018*Math.sin(i+t+age*4),.075+age*.21,.015*Math.cos(age*7+i)],i*3);
+  }
+  steam.geometry.attributes.position.needsUpdate=true;
+  grabs.update(dt);
+  if(primed&&t<25){handleMat.emissive.setHex(0xff913a);handleMat.emissiveIntensity=.24+.1*Math.sin(5*t);}
+  if(primed&&t>=25&&t<40)requestPeak();
+  const lit=t>=40;glow.visible=lit||primed;flame.update(t,(lit?1:.22)*fade);
+  glow.scale.y=.24*(1+.12*Math.sin(t*19)+.06*Math.sin(t*31));
+  const hs=hands();lampWorld.copy(lantern.position);let warmth=0;
+  for(const h of hs)warmth=Math.max(warmth,1-smooth(.08,.25,h.position.distanceTo(lampWorld)));
+  light.intensity=(lit?3.6:primed?.12:0)*fade*(1+.25*warmth+.08*Math.sin(t*23));audio.warmth(lampWorld,warmth);
   rainUniforms.uOpacity.value=wet*.55;
   // Keep falling drops outside the completed roof (shader mask below is shared).
   rainUniforms.uShelter.value=grown;
   splashes.uniforms.uOpacity.value=wet*.7;
   for(let i=0;i<180;i++) {
    const [x,z,phase]=splashBase[i],age=(t*2+phase)%1,inside=Math.abs(x)<.85&&z>-.95&&z<.85;
-   splashes.positions.set([x,inside&&grown>.5?-2:.012+Math.sin(age*Math.PI)*.07,z],i*3);
+   splashes.positions[i*3]=x;splashes.positions[i*3+1]=inside&&grown>.5?-2:.012+Math.sin(age*Math.PI)*.07;
+   splashes.positions[i*3+2]=z;
   }
   splashes.geometry.attributes.position.needsUpdate=true;
   handDrops.uniforms.uOpacity.value=wet;
   for(let i=0;i<24;i++) {
-   const h=hs[i%Math.max(1,hs.length)],outside=h&&(grown<.8||Math.abs(h.position.x)>.72||h.position.z<-.75||h.position.z>.7);
+   const h=hs[i%Math.max(1,hs.length)],outside=h&&(grown<.8||Math.abs(h.position.x)>half||Math.abs(h.position.z)>depth||h.position.y>ridge-Math.abs(h.position.x)*(ridge-eave)/half);
    const age=(t*4+i*.17)%1;
    handDrops.positions.set(outside?[h.position.x+Math.sin(i*4)*age*.07,h.position.y+.025-age*.08,h.position.z+Math.cos(i*3)*age*.07]:[0,-5,0],i*3);
-   if(outside&&wet>.1&&t-lastTap>.22){audio.tap(h.position,.045);lastTap=t;}
+   if(outside&&wet>.1&&t-lastTap>.22){audio.tap(h.position,.045);h.pulse?.(.09,25);lastTap=t;}
   }
   handDrops.geometry.attributes.position.needsUpdate=true;dust.uniforms.uOpacity.value=grown*.45;
   clouds.position.x=Math.sin(t*.02)*5;
-  wood.color.setRGB(.65*fade,.45*fade,.27*fade);cold.intensity=.22*fade;
+  cold.intensity=.34*fade;
  }};
 }

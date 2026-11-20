@@ -4,7 +4,7 @@ import {RGBELoader} from '../vendor/loaders/RGBELoader.js';
 
 export const packs=[
  {materials:['rough_wood','metal_plate'],sky:'rogland_moonlit_night',sounds:['wind','wind-bed','door']},
- {materials:['brown_mud','rough_wood','metal_plate'],sky:'approaching_storm',sounds:['rain','rain-bed','wind','fire','drop','roof','thunder']},
+ {materials:['brown_mud','rough_linen','fabric_pattern_05','metal_plate'],sky:'approaching_storm',sounds:['rain','rain-bed','wind','fire','drop','roof','thunder']},
  {materials:[],sky:'rogland_moonlit_night',sounds:['crickets','crickets-bed','wind']},
  {materials:[],sounds:['drop','steps','door','wind','wind-bed']}
 ];

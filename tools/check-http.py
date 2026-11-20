@@ -27,9 +27,14 @@ try:
  print(f'node --check: {len(modules)} modules OK; imports local and resolved')
  print(f'python -m http.server {port}: {len(files)} files HTTP 200; SHA256 equal')
 finally:server.terminate();server.wait(timeout=5)
-packs=[('Schuilplek',['brown_mud','rough_wood','metal_plate','approaching_storm'],['rain','rain-bed','wind','fire','drop','roof','thunder']),('De plank',['rough_wood','metal_plate','rogland_moonlit_night'],['wind','wind-bed','door']),('Vuurvliegjes',['rogland_moonlit_night'],['crickets','crickets-bed','wind']),('Donker',[],['drop','steps','door','wind','wind-bed'])]
+packs=[('Schuilplek',['brown_mud','rough_linen','fabric_pattern_05','metal_plate','approaching_storm'],['rain','rain-bed','wind','fire','drop','roof','thunder']),('De plank',['rough_wood','metal_plate','rogland_moonlit_night'],['wind','wind-bed','door']),('Vuurvliegjes',['rogland_moonlit_night'],['crickets','crickets-bed','wind']),('Donker',[],['drop','steps','door','wind','wind-bed'])]
 common=sum(p.stat().st_size for p in files if p.relative_to(root).parts[0]!='assets' and 'tools' not in p.relative_to(root).parts)
+for record in json.loads((root/'assets/sources.json').read_text()):
+ assert (root/record['file']).is_file(),record['file']
 for name,folders,sounds in packs:
+ for folder in folders:
+  expected=['sky.jpg','environment.hdr'] if folder in ['rogland_moonlit_night','approaching_storm'] else ['color.jpg','normal.jpg','roughness.jpg']
+  for file in expected:assert (root/'assets'/folder/file).is_file(),(folder,file)
  selected=[p for p in files if any(p.is_relative_to(root/'assets'/folder) for folder in folders)]
  selected += [root/'assets/audio'/f'{sound}.ogg' for sound in sounds]
  size=sum(p.stat().st_size for p in selected)

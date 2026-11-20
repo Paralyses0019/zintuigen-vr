@@ -328,5 +328,41 @@
     "url": "https://raw.githubusercontent.com/immersive-web/webxr-input-profiles/main/packages/motion-controllers/LICENSE.md",
     "source": "https://raw.githubusercontent.com/immersive-web/webxr-input-profiles/main/packages/motion-controllers/LICENSE.md",
     "license": "MIT"
+  },
+  {
+    "file": "assets/rough_linen/color.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_diff_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rough_linen"
+  },
+  {
+    "file": "assets/rough_linen/normal.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rough_linen"
+  },
+  {
+    "file": "assets/rough_linen/roughness.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_linen/rough_linen_rough_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rough_linen"
+  },
+  {
+    "file": "assets/fabric_pattern_05/color.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_pattern_05/fabric_pattern_05_col_01_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/fabric_pattern_05"
+  },
+  {
+    "file": "assets/fabric_pattern_05/normal.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_pattern_05/fabric_pattern_05_nor_gl_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/fabric_pattern_05"
+  },
+  {
+    "file": "assets/fabric_pattern_05/roughness.jpg",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/fabric_pattern_05/fabric_pattern_05_rough_1k.jpg",
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/fabric_pattern_05"
   }
 ]
